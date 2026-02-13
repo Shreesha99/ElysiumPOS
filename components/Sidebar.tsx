@@ -25,7 +25,7 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, darkMode, toggleDarkMode, user, onLogout }) => {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'pos', label: 'Terminal', icon: HandPlatter },
+    { id: 'pos', label: 'Order Hub', icon: HandPlatter },
     { id: 'tables', label: 'Floor Map', icon: TableIcon },
     { id: 'waiters', label: 'Staff', icon: UserCheck },
     { id: 'inventory', label: 'Assets', icon: Database },
@@ -41,7 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, darkMode, to
           </div>
           <div>
              <h1 className="font-extrabold text-lg tracking-tight dark:text-white uppercase">Elysium <span className="text-indigo-600">POS</span></h1>
-             <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Main Terminal</p>
+             <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Premium Intelligence</p>
           </div>
         </div>
 

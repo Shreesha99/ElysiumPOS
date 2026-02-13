@@ -1,5 +1,6 @@
 
 export type Category = 'Starters' | 'Mains' | 'Desserts' | 'Drinks' | 'Specials';
+export type OrderType = 'Dining' | 'Takeaway';
 
 export interface MenuItem {
   id: string;
@@ -48,6 +49,8 @@ export interface Table {
 export interface Order {
   id: string;
   tableId?: string;
+  orderType: OrderType;
+  customerName?: string;
   items: CartItem[];
   status: 'Pending' | 'In Preparation' | 'Served' | 'Paid';
   timestamp: string;

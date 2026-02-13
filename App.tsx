@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import Auth from './components/Auth';
 import { Toaster, toast } from './components/Toaster';
-import { MenuItem, Category, BusinessInsight, Table, Waiter, Order, Floor } from './types';
+import { MenuItem, Category, BusinessInsight, Table, Waiter, Order, Floor, CartItem, OrderType } from './types';
 import { INITIAL_MENU_ITEMS, CATEGORIES, INITIAL_TABLES, INITIAL_WAITERS, INITIAL_FLOORS } from './constants';
 import { geminiService } from './services/geminiService';
 import { authService, User } from './services/authService';
@@ -49,9 +49,10 @@ const App: React.FC = () => {
   const [draftFloors, setDraftFloors] = useState<Floor[]>([]);
   const [editingFloorId, setEditingFloorId] = useState<string | null>(null);
 
-  const [cart, setCart] = useState<any[]>([]);
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [activeFloorId, setActiveFloorId] = useState<string>(() => floors[0]?.id || 'f1');
+  const [orderType, setOrderType] = useState<OrderType>('Dining');
 
   const [mapRotation, setMapRotation] = useState(-20);
   const [mapPitch, setMapPitch] = useState(45);
@@ -107,6 +108,19 @@ const App: React.FC = () => {
     safeSetItem('elysium_theme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
 
+  // Handle upselling logic when cart changes
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (cart.length > 0) {
+        const suggestions = await geminiService.getUpsellSuggestions(cart, menuItems);
+        setUpsellSuggestions(suggestions);
+      } else {
+        setUpsellSuggestions([]);
+      }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [cart, menuItems]);
+
   const fetchAIInsights = useCallback(async () => {
     setIsLoadingInsights(true);
     try {
@@ -154,12 +168,22 @@ const App: React.FC = () => {
       if (existing) return prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i);
       return [...prev, { ...item, quantity: 1 }];
     });
-    toast(`${item.name} added to cart`, "success");
+    toast(`${item.name} added`, "success");
   };
 
   const handleCheckout = () => {
     if (cart.length === 0) return;
-    if (selectedTableId) {
+
+    if (orderType === 'Dining' && !selectedTableId) {
+        toast("Please select a table for Dining orders", "error");
+        return;
+    }
+
+    const subtotal = cart.reduce((acc, mi) => acc + (mi.price * mi.quantity), 0);
+    const tax = subtotal * 0.12;
+    const total = subtotal + tax;
+
+    if (orderType === 'Dining' && selectedTableId) {
       const activeTableOrder = orders.find(o => o.tableId === selectedTableId && o.status !== 'Paid');
       if (activeTableOrder) {
         const updatedOrders = orders.map(o => {
@@ -177,24 +201,37 @@ const App: React.FC = () => {
           return o;
         });
         setOrders(updatedOrders);
-        toast(`Order updated for Table ${selectedTable?.number}`, "success");
+        toast(`Order added to Table ${selectedTable?.number}`, "success");
       } else {
-        const subtotal = cart.reduce((acc, mi) => acc + (mi.price * mi.quantity), 0);
-        const tax = subtotal * 0.12;
         const newOrder: Order = {
           id: `ord-${Date.now()}`,
           tableId: selectedTableId,
+          orderType: 'Dining',
           items: [...cart],
           status: 'Pending',
           timestamp: new Date().toISOString(),
           subtotal,
           tax,
-          total: subtotal + tax
+          total
         };
         setOrders(prev => [...prev, newOrder]);
         setTables(prev => prev.map(t => t.id === selectedTableId ? { ...t, status: 'Occupied', currentOrderId: newOrder.id } : t));
-        toast(`New session started for Table ${selectedTable?.number}`, "success");
+        toast(`Table ${selectedTable?.number} session started`, "success");
       }
+    } else {
+        // Takeaway
+        const newOrder: Order = {
+          id: `tkw-${Date.now()}`,
+          orderType: 'Takeaway',
+          items: [...cart],
+          status: 'Pending',
+          timestamp: new Date().toISOString(),
+          subtotal,
+          tax,
+          total
+        };
+        setOrders(prev => [...prev, newOrder]);
+        toast("Takeaway order placed successfully", "success");
     }
     setCart([]);
   };
@@ -308,6 +345,7 @@ const App: React.FC = () => {
             updateQuantity={(id, d) => setCart(prev => prev.map(i => i.id === id ? {...i, quantity: Math.max(0, i.quantity + d)} : i).filter(i => i.quantity > 0))} 
             removeFromCart={(id) => setCart(prev => prev.filter(i => i.id !== id))} 
             handleCheckout={handleCheckout} upsellSuggestions={upsellSuggestions}
+            orderType={orderType} setOrderType={setOrderType}
           />
         );
       case 'waiters':
@@ -322,7 +360,7 @@ const App: React.FC = () => {
       case 'insights':
         return <InsightsView insights={insights} fetchAIInsights={fetchAIInsights} />;
       default:
-        return <div>Unknown dashboard node.</div>;
+        return <div className="p-10 text-zinc-500 uppercase tracking-widest text-xs font-bold">Node selection required.</div>;
     }
   };
 
