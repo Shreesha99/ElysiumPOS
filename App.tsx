@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import MenuCard from './components/MenuCard';
@@ -23,13 +24,16 @@ import {
   RotateCcw,
   Maximize,
   Navigation,
+  Move,
   Zap,
   ChevronRight,
   ChevronDown,
   Sparkles,
   Grip,
   Box,
-  Layers
+  Layers,
+  Edit2,
+  Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -68,6 +72,7 @@ const App: React.FC = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [draftTables, setDraftTables] = useState<Table[]>([]);
   const [draftFloors, setDraftFloors] = useState<Floor[]>([]);
+  const [editingFloorId, setEditingFloorId] = useState<string | null>(null);
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
@@ -144,6 +149,7 @@ const App: React.FC = () => {
   const cancelEdit = () => {
     setIsEditMode(false);
     setSelectedTableId(null);
+    setEditingFloorId(null);
     toast("Changes Discarded", "info");
   };
 
@@ -152,7 +158,36 @@ const App: React.FC = () => {
     setFloors([...draftFloors]);
     setIsEditMode(false);
     setSelectedTableId(null);
+    setEditingFloorId(null);
     toast("Spatial Map Persisted", "success");
+  };
+
+  // FLOOR MANAGEMENT
+  const addNewFloor = () => {
+    const newId = `f-${Date.now()}`;
+    const newFloor: Floor = {
+      id: newId,
+      name: `New Floor ${draftFloors.length + 1}`,
+      width: 20,
+      height: 20
+    };
+    setDraftFloors(prev => [...prev, newFloor]);
+    setActiveFloorId(newId);
+    setEditingFloorId(newId);
+    toast("New Floor Node Initialized", "success");
+  };
+
+  const deleteFloor = (id: string) => {
+    if (draftFloors.length <= 1) {
+      toast("Minimum one floor required", "error");
+      return;
+    }
+    setDraftFloors(prev => prev.filter(f => f.id !== id));
+    setDraftTables(prev => prev.filter(t => t.floorId !== id));
+    if (activeFloorId === id) {
+      setActiveFloorId(draftFloors.find(f => f.id !== id)?.id || '');
+    }
+    toast("Floor Node Decommissioned", "info");
   };
 
   const addToCart = (item: MenuItem) => {
@@ -308,7 +343,7 @@ const App: React.FC = () => {
            }`}
            style={{ transform: `translateZ(40px) rotate(${table.rotation || 0}deg)` }}
          >
-            <span className="text-xl font-black italic uppercase">T{table.number}</span>
+            <span className="text-xl font-black italic uppercase tracking-tighter">T{table.number}</span>
             <div className="flex items-center gap-1 opacity-60 text-[10px] font-black uppercase mt-1">
                <Users size={10} /> {table.capacity}
             </div>
@@ -450,17 +485,47 @@ const App: React.FC = () => {
                   <h1 className="text-4xl font-black italic uppercase tracking-tighter flex items-center gap-6">
                     Floor Map {isEditMode && <span className="bg-rose-600 text-white text-xs px-4 py-1.5 rounded-full uppercase font-black tracking-widest shadow-xl shadow-rose-500/20 animate-pulse">Live Editor</span>}
                   </h1>
-                  <div className="flex gap-2 p-2 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-100 dark:border-zinc-800 shadow-sm">
-                    {activeFloors.map(f => (
-                      <button 
-                        key={f.id} onClick={() => setActiveFloorId(f.id)}
-                        className={`px-8 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${
-                          activeFloorId === f.id ? 'bg-zinc-900 text-white dark:bg-indigo-600' : 'text-zinc-500 hover:bg-zinc-50'
-                        }`}
-                      >
-                        {f.name}
+                  
+                  <div className="flex items-center gap-2 p-2 bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-100 dark:border-zinc-800 shadow-sm overflow-hidden">
+                    <div className="flex gap-1">
+                      {activeFloors.map(f => (
+                        <div key={f.id} className="relative group">
+                          {editingFloorId === f.id ? (
+                            <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl border border-indigo-200 dark:border-indigo-800">
+                               <input 
+                                 autoFocus
+                                 className="bg-transparent border-none outline-none text-xs font-black uppercase tracking-widest dark:text-white w-24"
+                                 value={f.name}
+                                 onChange={(e) => updateDraftFloor(f.id, { name: e.target.value })}
+                                 onBlur={() => setEditingFloorId(null)}
+                                 onKeyDown={(e) => e.key === 'Enter' && setEditingFloorId(null)}
+                               />
+                               <Check size={14} className="text-emerald-500 cursor-pointer" onClick={() => setEditingFloorId(null)} />
+                            </div>
+                          ) : (
+                            <button 
+                              onClick={() => setActiveFloorId(f.id)}
+                              className={`px-8 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-3 ${
+                                activeFloorId === f.id ? 'bg-zinc-900 text-white dark:bg-indigo-600' : 'text-zinc-500 hover:bg-zinc-50'
+                              }`}
+                            >
+                              {f.name}
+                              {isEditMode && activeFloorId === f.id && (
+                                <div className="flex items-center gap-2 ml-2">
+                                  <Edit2 size={12} className="opacity-40 hover:opacity-100 transition-opacity" onClick={(e) => { e.stopPropagation(); setEditingFloorId(f.id); }} />
+                                  <Trash2 size={12} className="opacity-40 hover:text-rose-500 transition-colors" onClick={(e) => { e.stopPropagation(); deleteFloor(f.id); }} />
+                                </div>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    {isEditMode && (
+                      <button onClick={addNewFloor} className="p-2.5 rounded-2xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all ml-1">
+                        <Plus size={16} />
                       </button>
-                    ))}
+                    )}
                   </div>
 
                   <div className="flex gap-1 p-1.5 bg-zinc-100 dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800">
@@ -649,7 +714,18 @@ const App: React.FC = () => {
                     <div className="flex items-center justify-between shrink-0">
                        <div>
                           <p className="text-xs font-black uppercase text-zinc-500 tracking-widest mb-1">{isEditMode ? 'Environmental Node' : 'Active Terminal'}</p>
-                          <h3 className="text-4xl font-black italic uppercase tracking-tighter">Table T{selectedTable.number}</h3>
+                          <div className="flex items-center gap-4">
+                            <span className="text-4xl font-black italic uppercase tracking-tighter">Table</span>
+                            {isEditMode ? (
+                              <input 
+                                className="w-20 text-4xl font-black italic uppercase tracking-tighter bg-zinc-800/50 dark:bg-zinc-700/50 rounded-xl px-2 outline-none border border-white/10"
+                                value={selectedTable.number}
+                                onChange={(e) => updateDraftTable(selectedTable.id, { number: parseInt(e.target.value) || 0 })}
+                              />
+                            ) : (
+                              <h3 className="text-4xl font-black italic uppercase tracking-tighter">T{selectedTable.number}</h3>
+                            )}
+                          </div>
                        </div>
                        <button onClick={() => setSelectedTableId(null)} className="p-3 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-2xl transition-all text-zinc-400 hover:text-rose-500">
                           <XCircle size={32}/>
@@ -842,12 +918,21 @@ const App: React.FC = () => {
     }
   };
 
+  if (!user) {
+    return (
+      <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950 text-foreground overflow-hidden font-sans">
+        <Toaster />
+        <Auth onAuthSuccess={setUser} />
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950 text-foreground overflow-hidden font-sans selection:bg-indigo-500/30">
       <Toaster />
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} darkMode={darkMode} toggleDarkMode={() => setDarkMode(!darkMode)} user={user} onLogout={handleLogout} />
       <main className="flex-1 lg:ml-72 transition-all h-full relative">
-        {user ? renderContent() : <Auth onAuthSuccess={setUser} />}
+        {renderContent()}
       </main>
     </div>
   );
