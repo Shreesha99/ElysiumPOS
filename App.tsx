@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import MenuCard from './components/MenuCard';
@@ -431,8 +432,8 @@ const App: React.FC = () => {
         );
 
         return (
-          <div className="h-full flex flex-col p-8 gap-8 overflow-hidden bg-zinc-50 dark:bg-zinc-950 relative">
-            <header className="flex items-center justify-between shrink-0">
+          <div className="h-full flex flex-col p-8 gap-8 bg-zinc-50 dark:bg-zinc-950 relative overflow-hidden">
+            <header className="flex items-center justify-between shrink-0 z-10">
                <div className="flex items-center gap-10">
                   <h1 className="text-4xl font-black italic uppercase tracking-tighter flex items-center gap-6">
                     Floor Map {isEditMode && <span className="bg-rose-600 text-white text-xs px-4 py-1.5 rounded-full uppercase font-black tracking-widest shadow-xl shadow-rose-500/20 animate-pulse">Live Editor</span>}
@@ -484,7 +485,7 @@ const App: React.FC = () => {
                </div>
             </header>
 
-            <div className="flex-1 relative bg-white dark:bg-zinc-900 rounded-[5rem] border-[12px] border-zinc-100 dark:border-zinc-800 shadow-2xl overflow-hidden flex items-center justify-center">
+            <div className="flex-1 relative bg-white dark:bg-zinc-900 rounded-[5rem] border-[12px] border-zinc-100 dark:border-zinc-800 shadow-2xl overflow-hidden flex items-center justify-center z-0">
                {viewMode === '3d' ? (
                  <>
                    <div className="absolute top-10 left-10 z-30 flex flex-col gap-4">
@@ -625,11 +626,13 @@ const App: React.FC = () => {
                )}
             </div>
 
-            {/* MOVED OUTSIDE MAP CONTAINER TO PREVENT CLIPPING */}
+            {/* TABLE DETAILS MODAL OVERLAY - POSITIONED OUTSIDE MAP TO AVOID CLIPPING */}
             <AnimatePresence>
                {selectedTable && (
                  <motion.div 
-                   initial={{ x: 100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 100, opacity: 0 }}
+                   initial={{ x: 100, opacity: 0 }} 
+                   animate={{ x: 0, opacity: 1 }} 
+                   exit={{ x: 100, opacity: 0 }}
                    className={`absolute right-12 top-[120px] bottom-[120px] w-[400px] backdrop-blur-3xl border rounded-[4rem] p-16 shadow-[0_60px_120px_-20px_rgba(0,0,0,0.6)] z-[200] flex flex-col gap-12 ${isEditMode ? 'bg-zinc-950/95 border-zinc-800 text-white' : 'bg-white/95 dark:bg-zinc-900/95 border-zinc-100 dark:border-zinc-800'}`}
                  >
                     <div className="flex items-center justify-between shrink-0">
