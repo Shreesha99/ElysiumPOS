@@ -6,8 +6,8 @@ export interface User {
   role: 'admin' | 'staff';
 }
 
-const USERS_KEY = 'elysium_users';
-const CURRENT_USER_KEY = 'elysium_current_user';
+const USERS_KEY = 'elysium_users_v2';
+const CURRENT_USER_KEY = 'elysium_current_user_v2';
 
 export const authService = {
   getCurrentUser: (): User | null => {
@@ -16,30 +16,34 @@ export const authService = {
   },
 
   login: async (email: string, password: string): Promise<User> => {
-    // Simulated delay
     await new Promise(resolve => setTimeout(resolve, 800));
-    
     const users: User[] = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-    const user = users.find(u => u.email === email);
+    // For POC, we just check email. In reality, use password hashing.
+    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
     
     if (user) {
       localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
       return user;
     }
     
-    throw new Error("Invalid credentials. Try signing up!");
+    throw new Error("Credentials not found. Please sign up first.");
   },
 
   signup: async (name: string, email: string, password: string): Promise<User> => {
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
     const users: User[] = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-    if (users.some(u => u.email === email)) {
-      throw new Error("Email already registered.");
+    if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+      throw new Error("This email is already registered.");
     }
     
-    const newUser: User = { id: Math.random().toString(36).substr(2, 9), email, name, role: 'admin' };
-    localStorage.setItem(USERS_KEY, JSON.stringify([...users, newUser]));
+    const newUser: User = { 
+      id: Math.random().toString(36).substring(2, 9), 
+      email: email.toLowerCase(), 
+      name, 
+      role: 'admin' 
+    };
+    const updatedUsers = [...users, newUser];
+    localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
     localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(newUser));
     return newUser;
   },

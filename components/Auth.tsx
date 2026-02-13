@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { authService, User } from '../services/authService';
 import { toast } from './Toaster';
 import { motion } from 'framer-motion';
+import { Shield, ChevronRight, Mail, Lock, User as UserIcon } from 'lucide-react';
 
 interface AuthProps {
   onAuthSuccess: (user: User) => void;
@@ -21,7 +22,7 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
     try {
       if (isLogin) {
         const user = await authService.login(email, password);
-        toast(`Welcome back, ${user.name}!`, 'success');
+        toast(`Welcome back, ${user.name}`, 'success');
         onAuthSuccess(user);
       } else {
         const user = await authService.signup(name, email, password);
@@ -36,71 +37,82 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-zinc-50 dark:bg-zinc-950 p-6">
+    <div className="min-h-screen w-full flex items-center justify-center bg-zinc-50 dark:bg-zinc-950 p-6 relative overflow-hidden font-sans">
+      <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-500 blur-[120px] rounded-full" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-500 blur-[120px] rounded-full" />
+      </div>
+
       <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-[400px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-2xl shadow-indigo-500/5 p-8"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="w-full max-w-[440px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] shadow-2xl p-10 relative z-10"
       >
         <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200 mb-4">
-            <span className="text-white font-black text-xl">E</span>
+          <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-xl mb-4">
+            <span className="text-white font-extrabold text-3xl">E</span>
           </div>
-          <h1 className="text-2xl font-extrabold tracking-tight dark:text-white">Elysium<span className="text-indigo-600">POS</span></h1>
-          <p className="text-zinc-500 text-sm mt-1">Intelligence for the modern table.</p>
+          <h1 className="text-2xl font-extrabold tracking-tight dark:text-white">
+            ELYSIUM <span className="text-indigo-600">POS</span>
+          </h1>
+          <p className="text-zinc-500 text-xs font-semibold uppercase tracking-widest mt-1">Enterprise Intelligence</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && (
-            <div>
-              <label className="block text-xs font-bold text-zinc-400 uppercase mb-1.5 ml-1">Full Name</label>
-              <input 
-                required
-                type="text" 
-                placeholder="John Doe"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white" 
-              />
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-zinc-500 dark:text-zinc-400 ml-1">Full Name</label>
+              <div className="relative">
+                <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+                <input 
+                  required type="text" placeholder="John Doe" value={name} onChange={(e) => setName(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white font-medium" 
+                />
+              </div>
             </div>
           )}
-          <div>
-            <label className="block text-xs font-bold text-zinc-400 uppercase mb-1.5 ml-1">Email Address</label>
-            <input 
-              required
-              type="email" 
-              placeholder="chef@elysium.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white" 
-            />
+          
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-zinc-500 dark:text-zinc-400 ml-1">Work Email</label>
+            <div className="relative">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+              <input 
+                required type="email" placeholder="admin@elysium.com" value={email} onChange={(e) => setEmail(e.target.value)}
+                className="w-full pl-12 pr-4 py-3.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white font-medium" 
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-xs font-bold text-zinc-400 uppercase mb-1.5 ml-1">Password</label>
-            <input 
-              required
-              type="password" 
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white" 
-            />
+
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-zinc-500 dark:text-zinc-400 ml-1">Secure Passkey</label>
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+              <input 
+                required type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)}
+                className="w-full pl-12 pr-4 py-3.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white font-medium" 
+              />
+            </div>
           </div>
           
           <button 
             disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-indigo-100 dark:shadow-none transition-all mt-2 disabled:opacity-50"
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-500/30 transition-all mt-4 disabled:opacity-50 flex items-center justify-center gap-2 group"
           >
-            {loading ? 'Authenticating...' : (isLogin ? 'Sign In' : 'Create Account')}
+            {loading ? 'Processing...' : (
+              <>
+                {isLogin ? 'Log In' : 'Create Account'}
+                <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
+              </>
+            )}
           </button>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-zinc-100 dark:border-zinc-800 text-center">
+        <div className="mt-8 text-center">
           <button 
             onClick={() => setIsLogin(!isLogin)}
-            className="text-sm font-medium text-indigo-600 hover:text-indigo-500 transition-colors"
+            className="text-xs font-bold text-zinc-500 hover:text-indigo-600 transition-colors uppercase tracking-widest"
           >
-            {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+            {isLogin ? "Need access? Request Account" : "Back to Terminal Login"}
           </button>
         </div>
       </motion.div>
