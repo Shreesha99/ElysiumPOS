@@ -1,0 +1,7 @@
+{
+  "name": "Elysium POS - Premium Restaurant Intelligence",
+  "description": "A sophisticated, AI-driven POS system built for high-performance dining experiences, featuring deep business analytics and automated upselling.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
