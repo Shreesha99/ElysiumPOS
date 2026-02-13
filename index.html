@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
-      // Shim process.env for the browser environment
+      // Shim process.env for the browser environment to prevent reference errors
       window.process = window.process || { env: {} };
       
       tailwind.config = {

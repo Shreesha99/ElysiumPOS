@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import MenuCard from './components/MenuCard';
@@ -24,7 +23,6 @@ import {
   RotateCcw,
   Maximize,
   Navigation,
-  Move,
   Zap,
   ChevronRight,
   ChevronDown,
@@ -37,20 +35,34 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const GRID_SIZE = 40;
 
+const safeGetItem = (key: string, defaultValue: string) => {
+  try {
+    return localStorage.getItem(key) || defaultValue;
+  } catch (e) {
+    return defaultValue;
+  }
+};
+
+const safeSetItem = (key: string, value: string) => {
+  try {
+    localStorage.setItem(key, value);
+  } catch (e) {}
+};
+
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(authService.getCurrentUser());
   const [activeTab, setActiveTab] = useState('pos');
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('elysium_theme') === 'dark');
+  const [darkMode, setDarkMode] = useState(() => safeGetItem('elysium_theme', 'light') === 'dark');
   const [activeCategory, setActiveCategory] = useState<Category>('Starters');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [viewMode, setViewMode] = useState<'2d' | '3d'>('3d');
   
   // CORE PERSISTENT STATE
-  const [menuItems, setMenuItems] = useState<MenuItem[]>(() => JSON.parse(localStorage.getItem('elysium_menu') || JSON.stringify(INITIAL_MENU_ITEMS)));
-  const [floors, setFloors] = useState<Floor[]>(() => JSON.parse(localStorage.getItem('elysium_floors') || JSON.stringify(INITIAL_FLOORS)));
-  const [tables, setTables] = useState<Table[]>(() => JSON.parse(localStorage.getItem('elysium_tables') || JSON.stringify(INITIAL_TABLES)));
-  const [waiters, setWaiters] = useState<Waiter[]>(() => JSON.parse(localStorage.getItem('elysium_waiters') || JSON.stringify(INITIAL_WAITERS)));
-  const [orders, setOrders] = useState<Order[]>(() => JSON.parse(localStorage.getItem('elysium_orders') || '[]'));
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(() => JSON.parse(safeGetItem('elysium_menu', JSON.stringify(INITIAL_MENU_ITEMS))));
+  const [floors, setFloors] = useState<Floor[]>(() => JSON.parse(safeGetItem('elysium_floors', JSON.stringify(INITIAL_FLOORS))));
+  const [tables, setTables] = useState<Table[]>(() => JSON.parse(safeGetItem('elysium_tables', JSON.stringify(INITIAL_TABLES))));
+  const [waiters, setWaiters] = useState<Waiter[]>(() => JSON.parse(safeGetItem('elysium_waiters', JSON.stringify(INITIAL_WAITERS))));
+  const [orders, setOrders] = useState<Order[]>(() => JSON.parse(safeGetItem('elysium_orders', '[]')));
 
   // EDIT MODE (DRAFT) STATE
   const [isEditMode, setIsEditMode] = useState(false);
@@ -85,16 +97,16 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('elysium_menu', JSON.stringify(menuItems));
-    localStorage.setItem('elysium_floors', JSON.stringify(floors));
-    localStorage.setItem('elysium_tables', JSON.stringify(tables));
-    localStorage.setItem('elysium_waiters', JSON.stringify(waiters));
-    localStorage.setItem('elysium_orders', JSON.stringify(orders));
+    safeSetItem('elysium_menu', JSON.stringify(menuItems));
+    safeSetItem('elysium_floors', JSON.stringify(floors));
+    safeSetItem('elysium_tables', JSON.stringify(tables));
+    safeSetItem('elysium_waiters', JSON.stringify(waiters));
+    safeSetItem('elysium_orders', JSON.stringify(orders));
   }, [menuItems, floors, tables, waiters, orders]);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode);
-    localStorage.setItem('elysium_theme', darkMode ? 'dark' : 'light');
+    safeSetItem('elysium_theme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
 
   useEffect(() => {
@@ -626,7 +638,6 @@ const App: React.FC = () => {
                )}
             </div>
 
-            {/* TABLE DETAILS MODAL OVERLAY - POSITIONED OUTSIDE MAP TO AVOID CLIPPING */}
             <AnimatePresence>
                {selectedTable && (
                  <motion.div 

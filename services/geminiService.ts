@@ -1,9 +1,5 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { MenuItem, CartItem, BusinessInsight } from "../types";
-
-// Always use the named parameter for apiKey and assume process.env.API_KEY is pre-configured
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const geminiService = {
   /**
@@ -11,6 +7,9 @@ export const geminiService = {
    */
   async getUpsellSuggestions(cartItems: CartItem[], menu: MenuItem[]): Promise<string[]> {
     if (cartItems.length === 0) return [];
+    
+    // Create instance inside the method to avoid top-level "missing API key" errors during module load
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
     const cartDesc = cartItems.map(i => `${i.name} (Qty: ${i.quantity})`).join(', ');
     const menuDesc = menu.map(m => m.name).join(', ');
@@ -27,7 +26,6 @@ export const geminiService = {
           }
         }
       });
-      // Correctly access .text property as a string and trim it
       const jsonStr = response.text?.trim() || '[]';
       return JSON.parse(jsonStr);
     } catch (error) {
@@ -40,9 +38,10 @@ export const geminiService = {
    * Generates business insights based on simulated sales data.
    */
   async getBusinessInsights(salesData: any): Promise<BusinessInsight[]> {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
     try {
       const response = await ai.models.generateContent({
-        // Upgrade to gemini-3-pro-preview for complex reasoning tasks like business analysis
         model: 'gemini-3-pro-preview',
         contents: `Act as a world-class restaurant consultant. Analyze these daily sales metrics: ${JSON.stringify(salesData)}. Provide 3 actionable insights (title, value, trend, and short description) to improve profitability. Return in JSON format.`,
         config: {
@@ -62,7 +61,6 @@ export const geminiService = {
           }
         }
       });
-      // Correctly access .text property and trim it before parsing
       const jsonStr = response.text?.trim() || '[]';
       return JSON.parse(jsonStr);
     } catch (error) {

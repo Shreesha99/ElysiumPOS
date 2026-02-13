@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   email: string;
@@ -11,18 +10,30 @@ const CURRENT_USER_KEY = 'elysium_current_user_v2';
 
 export const authService = {
   getCurrentUser: (): User | null => {
-    const saved = localStorage.getItem(CURRENT_USER_KEY);
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem(CURRENT_USER_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      console.warn("Storage access denied. User session unavailable.");
+      return null;
+    }
   },
 
   login: async (email: string, password: string): Promise<User> => {
     await new Promise(resolve => setTimeout(resolve, 800));
-    const users: User[] = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-    // For POC, we just check email. In reality, use password hashing.
+    let users: User[] = [];
+    try {
+      users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+    } catch (e) {
+      console.warn("Storage access denied. Login fallback enabled.");
+    }
+    
     const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
     
     if (user) {
-      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+      try {
+        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+      } catch (e) {}
       return user;
     }
     
@@ -31,7 +42,11 @@ export const authService = {
 
   signup: async (name: string, email: string, password: string): Promise<User> => {
     await new Promise(resolve => setTimeout(resolve, 1000));
-    const users: User[] = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+    let users: User[] = [];
+    try {
+      users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+    } catch (e) {}
+    
     if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
       throw new Error("This email is already registered.");
     }
@@ -43,12 +58,16 @@ export const authService = {
       role: 'admin' 
     };
     const updatedUsers = [...users, newUser];
-    localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
-    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(newUser));
+    try {
+      localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(newUser));
+    } catch (e) {}
     return newUser;
   },
 
   logout: () => {
-    localStorage.removeItem(CURRENT_USER_KEY);
+    try {
+      localStorage.removeItem(CURRENT_USER_KEY);
+    } catch (e) {}
   }
 };
