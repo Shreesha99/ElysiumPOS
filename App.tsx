@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import MenuCard from './components/MenuCard';
 import CartPanel from './components/CartPanel';
@@ -29,7 +28,9 @@ import {
   ChevronRight,
   ChevronDown,
   Sparkles,
-  Grip
+  Grip,
+  Box,
+  Layers
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -41,6 +42,7 @@ const App: React.FC = () => {
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('elysium_theme') === 'dark');
   const [activeCategory, setActiveCategory] = useState<Category>('Starters');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const [viewMode, setViewMode] = useState<'2d' | '3d'>('3d');
   
   // CORE PERSISTENT STATE
   const [menuItems, setMenuItems] = useState<MenuItem[]>(() => JSON.parse(localStorage.getItem('elysium_menu') || JSON.stringify(INITIAL_MENU_ITEMS)));
@@ -117,10 +119,13 @@ const App: React.FC = () => {
   };
 
   const enterEditMode = () => {
+    if (viewMode !== '3d') {
+      setViewMode('3d');
+    }
     setDraftTables([...tables]);
     setDraftFloors([...floors]);
     setIsEditMode(true);
-    toast("Environment Editor Active", "info");
+    toast("Spatial Environment Editor Active", "info");
   };
 
   const cancelEdit = () => {
@@ -201,12 +206,12 @@ const App: React.FC = () => {
     toast("Session Terminated", "info");
   };
 
-  const updateDraftTable = (id: string, prop: keyof Table, val: any) => {
-    setDraftTables(prev => prev.map(t => t.id === id ? { ...t, [prop]: val } : t));
+  const updateDraftTable = (id: string, updates: Partial<Table>) => {
+    setDraftTables(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
   };
 
-  const updateDraftFloor = (id: string, prop: keyof Floor, val: any) => {
-    setDraftFloors(prev => prev.map(f => f.id === id ? { ...f, [prop]: val } : f));
+  const updateDraftFloor = (id: string, updates: Partial<Floor>) => {
+    setDraftFloors(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f));
   };
 
   const addNewTable = () => {
@@ -291,12 +296,16 @@ const App: React.FC = () => {
            style={{ transform: `translateZ(40px) rotate(${table.rotation || 0}deg)` }}
          >
             <span className="text-xl font-black italic uppercase">T{table.number}</span>
+            <div className="flex items-center gap-1 opacity-60 text-[10px] font-black uppercase mt-1">
+               <Users size={10} /> {table.capacity}
+            </div>
             {isEditMode && isSelected && (
               <>
                  <div 
                    className="absolute -top-6 -left-6 w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white cursor-move shadow-2xl border-4 border-white z-[60]"
                    onMouseDown={(e) => {
                      e.stopPropagation();
+                     e.preventDefault();
                      const startX = e.clientX;
                      const startY = e.clientY;
                      const startTableX = table.x;
@@ -307,8 +316,7 @@ const App: React.FC = () => {
                         const dy = Math.round((mv.clientY - startY) / GRID_SIZE);
                         const newX = Math.max(0, Math.min(startTableX + dx, currentFloor.width - table.width));
                         const newY = Math.max(0, Math.min(startTableY + dy, currentFloor.height - table.height));
-                        updateDraftTable(table.id, 'x', newX);
-                        updateDraftTable(table.id, 'y', newY);
+                        updateDraftTable(table.id, { x: newX, y: newY });
                      };
                      const handleMouseUp = () => {
                        window.removeEventListener('mousemove', handleMouseMove);
@@ -324,11 +332,12 @@ const App: React.FC = () => {
                    className="absolute -top-16 left-1/2 -translate-x-1/2 w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center text-white cursor-pointer shadow-xl border-2 border-white z-[60]"
                    onMouseDown={(e) => {
                      e.stopPropagation();
+                     e.preventDefault();
                      const startX = e.clientX;
                      const startRot = table.rotation || 0;
                      const handleMouseMove = (mv: MouseEvent) => {
                        const delta = (mv.clientX - startX);
-                       updateDraftTable(table.id, 'rotation', (startRot + delta) % 360);
+                       updateDraftTable(table.id, { rotation: (startRot + delta) % 360 });
                      };
                      const handleMouseUp = () => {
                        window.removeEventListener('mousemove', handleMouseMove);
@@ -344,6 +353,7 @@ const App: React.FC = () => {
                    className="absolute -bottom-6 -right-6 w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white cursor-se-resize shadow-2xl border-4 border-white z-[60]"
                    onMouseDown={(e) => {
                      e.stopPropagation();
+                     e.preventDefault();
                      const startX = e.clientX;
                      const startY = e.clientY;
                      const startW = table.width;
@@ -354,8 +364,9 @@ const App: React.FC = () => {
                        const dh = Math.round((mv.clientY - startY) / GRID_SIZE);
                        const newW = Math.max(2, Math.min(startW + dw, currentFloor.width - table.x));
                        const newH = Math.max(2, Math.min(startH + dh, currentFloor.height - table.y));
-                       updateDraftTable(table.id, 'width', newW);
-                       updateDraftTable(table.id, 'height', newH);
+                       
+                       const newCapacity = Math.max(2, Math.floor((newW * newH) / 1.5));
+                       updateDraftTable(table.id, { width: newW, height: newH, capacity: newCapacity });
                      };
                      const handleMouseUp = () => {
                        window.removeEventListener('mousemove', handleMouseMove);
@@ -420,7 +431,7 @@ const App: React.FC = () => {
         );
 
         return (
-          <div className="h-full flex flex-col p-8 gap-8 overflow-hidden bg-zinc-50 dark:bg-zinc-950">
+          <div className="h-full flex flex-col p-8 gap-8 overflow-hidden bg-zinc-50 dark:bg-zinc-950 relative">
             <header className="flex items-center justify-between shrink-0">
                <div className="flex items-center gap-10">
                   <h1 className="text-4xl font-black italic uppercase tracking-tighter flex items-center gap-6">
@@ -438,6 +449,23 @@ const App: React.FC = () => {
                       </button>
                     ))}
                   </div>
+
+                  <div className="flex gap-1 p-1.5 bg-zinc-100 dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+                    <button 
+                      onClick={() => { if (!isEditMode) setViewMode('2d'); }}
+                      className={`p-2 rounded-xl transition-all ${viewMode === '2d' ? 'bg-white dark:bg-zinc-800 text-indigo-600 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}
+                      title="2D Standard View"
+                    >
+                      <Layers size={20} />
+                    </button>
+                    <button 
+                      onClick={() => setViewMode('3d')}
+                      className={`p-2 rounded-xl transition-all ${viewMode === '3d' ? 'bg-white dark:bg-zinc-800 text-indigo-600 shadow-sm' : 'text-zinc-400 hover:text-zinc-600'}`}
+                      title="3D Spatial View"
+                    >
+                      <Box size={20} />
+                    </button>
+                  </div>
                </div>
                <div className="flex items-center gap-4">
                   <AnimatePresence>
@@ -448,118 +476,181 @@ const App: React.FC = () => {
                          <button onClick={saveEdit} className="bg-indigo-600 text-white px-12 py-4 rounded-3xl text-xs font-black uppercase tracking-widest flex items-center gap-3 shadow-2xl shadow-indigo-500/30 active:scale-95"><Save size={20}/> Deploy</button>
                       </motion.div>
                     ) : (
-                      <button onClick={enterEditMode} className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-800 px-12 py-5 rounded-3xl text-xs font-black uppercase tracking-widest flex items-center gap-4 shadow-sm hover:border-indigo-500 transition-colors"><Settings2 size={20}/> Environmental Control</button>
+                      viewMode === '3d' && (
+                        <button onClick={enterEditMode} className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-800 px-12 py-5 rounded-3xl text-xs font-black uppercase tracking-widest flex items-center gap-4 shadow-sm hover:border-indigo-500 transition-colors"><Settings2 size={20}/> Environmental Control</button>
+                      )
                     )}
                   </AnimatePresence>
                </div>
             </header>
 
             <div className="flex-1 relative bg-white dark:bg-zinc-900 rounded-[5rem] border-[12px] border-zinc-100 dark:border-zinc-800 shadow-2xl overflow-hidden flex items-center justify-center">
-               <div className="absolute top-10 left-10 z-30 flex flex-col gap-4">
-                  <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl p-4 rounded-[2rem] border border-zinc-100 dark:border-zinc-800 shadow-2xl flex flex-col items-center gap-4">
-                     <button onClick={() => setMapRotation(r => r - 15)} className="p-4 rounded-2xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-indigo-600 transition-all"><RotateCcw size={24} /></button>
-                     <div className="w-12 h-[2px] bg-zinc-100 dark:bg-zinc-800" />
-                     <button onClick={() => setMapRotation(r => r + 15)} className="p-4 rounded-2xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-indigo-600 transition-all rotate-180"><RotateCcw size={24} /></button>
-                  </div>
-               </div>
-               <div className="absolute top-10 right-10 z-30">
-                  <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl p-4 rounded-[2rem] border border-zinc-100 dark:border-zinc-800 shadow-2xl flex flex-col items-center gap-4">
-                     <button onClick={() => setMapPitch(p => Math.min(80, p + 5))} className="p-4 rounded-2xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-indigo-600 transition-all"><Navigation size={24}/></button>
-                     <div className="w-12 h-[2px] bg-zinc-100 dark:bg-zinc-800" />
-                     <button onClick={() => setMapPitch(p => Math.max(10, p - 5))} className="p-4 rounded-2xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-indigo-600 transition-all rotate-180"><Navigation size={24}/></button>
-                  </div>
-               </div>
+               {viewMode === '3d' ? (
+                 <>
+                   <div className="absolute top-10 left-10 z-30 flex flex-col gap-4">
+                      <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl p-4 rounded-[2rem] border border-zinc-100 dark:border-zinc-800 shadow-2xl flex flex-col items-center gap-4">
+                         <button onClick={() => setMapRotation(r => r - 15)} className="p-4 rounded-2xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-indigo-600 transition-all"><RotateCcw size={24} /></button>
+                         <div className="w-12 h-[2px] bg-zinc-100 dark:bg-zinc-800" />
+                         <button onClick={() => setMapRotation(r => r + 15)} className="p-4 rounded-2xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-indigo-600 transition-all rotate-180"><RotateCcw size={24} /></button>
+                      </div>
+                   </div>
+                   <div className="absolute top-10 right-10 z-30">
+                      <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl p-4 rounded-[2rem] border border-zinc-100 dark:border-zinc-800 shadow-2xl flex flex-col items-center gap-4">
+                         <button onClick={() => setMapPitch(p => Math.min(80, p + 5))} className="p-4 rounded-2xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-indigo-600 transition-all"><Navigation size={24}/></button>
+                         <div className="w-12 h-[2px] bg-zinc-100 dark:bg-zinc-800" />
+                         <button onClick={() => setMapPitch(p => Math.max(10, p - 5))} className="p-4 rounded-2xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-indigo-600 transition-all rotate-180"><Navigation size={24}/></button>
+                      </div>
+                   </div>
 
-               <motion.div 
-                 className="relative w-full h-full flex items-center justify-center" 
-                 animate={{ rotateX: mapPitch, rotateZ: mapRotation }}
-                 transition={{ type: 'spring', damping: 30, stiffness: 50 }}
-                 style={{ perspective: '4000px', transformStyle: 'preserve-3d' }}
-               >
-                  <div 
-                    className="relative bg-zinc-50/50 dark:bg-zinc-950/20 border-[6px] border-zinc-200 shadow-2xl"
-                    style={{ 
-                      width: `${(currentFloor?.width || 20) * GRID_SIZE}px`, 
-                      height: `${(currentFloor?.height || 20) * GRID_SIZE}px`,
-                      transformStyle: 'preserve-3d'
-                    }}
-                    onClick={() => setSelectedTableId(null)}
-                  >
-                     <div className="absolute inset-0 grid opacity-[0.06] pointer-events-none" style={{ 
-                       gridTemplateColumns: `repeat(${currentFloor?.width || 20}, 1fr)`,
-                       gridTemplateRows: `repeat(${currentFloor?.height || 20}, 1fr)` 
-                     }}>
-                        {Array.from({ length: (currentFloor?.width || 20) * (currentFloor?.height || 20) }).map((_, i) => <div key={i} className="border-[0.5px] border-zinc-400" />)}
-                     </div>
-                     {activeTables.filter(t => t.floorId === activeFloorId).map(t => renderTableNode(t))}
-
-                     {isEditMode && (
-                        <>
-                           <div 
-                             className="absolute bottom-[-24px] left-1/2 -translate-x-1/2 w-20 h-12 cursor-ns-resize bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-2xl z-[70] border-4 border-white"
-                             onMouseDown={(e) => {
-                               e.stopPropagation();
-                               const startY = e.clientY;
-                               const startH = currentFloor?.height || 20;
-                               const handleMouseMove = (mv: MouseEvent) => {
-                                 const dy = Math.round((mv.clientY - startY) / GRID_SIZE);
-                                 if (currentFloor) updateDraftFloor(currentFloor.id, 'height', Math.max(10, startH + dy));
-                               };
-                               const handleMouseUp = () => {
-                                 window.removeEventListener('mousemove', handleMouseMove);
-                                 window.removeEventListener('mouseup', handleMouseUp);
-                               };
-                               window.addEventListener('mousemove', handleMouseMove);
-                               window.addEventListener('mouseup', handleMouseUp);
-                             }}
-                           >
-                              <ChevronDown size={32} />
-                           </div>
-                           <div 
-                             className="absolute right-[-24px] top-1/2 -translate-y-1/2 w-12 h-20 cursor-ew-resize bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-2xl z-[70] border-4 border-white"
-                             onMouseDown={(e) => {
-                               e.stopPropagation();
-                               const startX = e.clientX;
-                               const startW = currentFloor?.width || 20;
-                               const handleMouseMove = (mv: MouseEvent) => {
-                                 const dx = Math.round((mv.clientX - startX) / GRID_SIZE);
-                                 if (currentFloor) updateDraftFloor(currentFloor.id, 'width', Math.max(10, startW + dx));
-                               };
-                               const handleMouseUp = () => {
-                                 window.removeEventListener('mousemove', handleMouseMove);
-                                 window.removeEventListener('mouseup', handleMouseUp);
-                               };
-                               window.addEventListener('mousemove', handleMouseMove);
-                               window.addEventListener('mouseup', handleMouseUp);
-                             }}
-                           >
-                              <ChevronRight size={32} />
-                           </div>
-                        </>
-                     )}
-                  </div>
-               </motion.div>
-
-               <AnimatePresence>
-                 {selectedTable && (
                    <motion.div 
-                     initial={{ x: 100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 100, opacity: 0 }}
-                     className={`absolute right-12 top-1/2 -translate-y-1/2 w-96 backdrop-blur-3xl border rounded-[4rem] p-16 shadow-[0_60px_120px_-20px_rgba(0,0,0,0.6)] z-[100] space-y-12 ${isEditMode ? 'bg-zinc-950/95 border-zinc-800 text-white' : 'bg-white/95 dark:bg-zinc-900/95 border-zinc-100 dark:border-zinc-800'}`}
+                     className="relative w-full h-full flex items-center justify-center" 
+                     animate={{ rotateX: mapPitch, rotateZ: mapRotation }}
+                     transition={{ type: 'spring', damping: 30, stiffness: 50 }}
+                     style={{ perspective: '4000px', transformStyle: 'preserve-3d' }}
                    >
-                      <div className="flex items-center justify-between">
-                         <div>
-                            <p className="text-xs font-black uppercase text-zinc-500 tracking-widest mb-1">{isEditMode ? 'Environmental Node' : 'Active Terminal'}</p>
-                            <h3 className="text-4xl font-black italic uppercase tracking-tighter">Table T{selectedTable.number}</h3>
+                      <div 
+                        className="relative bg-zinc-50/50 dark:bg-zinc-950/20 border-[6px] border-zinc-200 shadow-2xl"
+                        style={{ 
+                          width: `${(currentFloor?.width || 20) * GRID_SIZE}px`, 
+                          height: `${(currentFloor?.height || 20) * GRID_SIZE}px`,
+                          transformStyle: 'preserve-3d'
+                        }}
+                        onClick={() => setSelectedTableId(null)}
+                      >
+                         <div className="absolute inset-0 grid opacity-[0.06] pointer-events-none" style={{ 
+                           gridTemplateColumns: `repeat(${currentFloor?.width || 20}, 1fr)`,
+                           gridTemplateRows: `repeat(${currentFloor?.height || 20}, 1fr)` 
+                         }}>
+                            {Array.from({ length: (currentFloor?.width || 20) * (currentFloor?.height || 20) }).map((_, i) => <div key={i} className="border-[0.5px] border-zinc-400" />)}
                          </div>
+                         {activeTables.filter(t => t.floorId === activeFloorId).map(t => renderTableNode(t))}
+
                          {isEditMode && (
-                           <button onClick={() => deleteDraftTable(selectedTable.id)} className="text-rose-500 p-4 hover:bg-rose-500/10 rounded-3xl transition-all"><Trash2 size={32}/></button>
+                            <>
+                               <div 
+                                 className="absolute bottom-[-24px] left-1/2 -translate-x-1/2 w-20 h-12 cursor-ns-resize bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-2xl z-[70] border-4 border-white"
+                                 onMouseDown={(e) => {
+                                   e.stopPropagation();
+                                   e.preventDefault();
+                                   const startY = e.clientY;
+                                   const startH = currentFloor?.height || 20;
+                                   
+                                   const minRequiredH = draftTables
+                                     .filter(t => t.floorId === activeFloorId)
+                                     .reduce((max, t) => Math.max(max, t.y + t.height), 10);
+
+                                   const handleMouseMove = (mv: MouseEvent) => {
+                                     const dy = Math.round((mv.clientY - startY) / GRID_SIZE);
+                                     if (currentFloor) {
+                                       updateDraftFloor(currentFloor.id, { height: Math.max(minRequiredH, startH + dy) });
+                                     }
+                                   };
+                                   const handleMouseUp = () => {
+                                     window.removeEventListener('mousemove', handleMouseMove);
+                                     window.removeEventListener('mouseup', handleMouseUp);
+                                   };
+                                   window.addEventListener('mousemove', handleMouseMove);
+                                   window.addEventListener('mouseup', handleMouseUp);
+                                 }}
+                               >
+                                  <ChevronDown size={32} />
+                               </div>
+                               <div 
+                                 className="absolute right-[-24px] top-1/2 -translate-y-1/2 w-12 h-20 cursor-ew-resize bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-2xl z-[70] border-4 border-white"
+                                 onMouseDown={(e) => {
+                                   e.stopPropagation();
+                                   e.preventDefault();
+                                   const startX = e.clientX;
+                                   const startW = currentFloor?.width || 20;
+
+                                   const minRequiredW = draftTables
+                                     .filter(t => t.floorId === activeFloorId)
+                                     .reduce((max, t) => Math.max(max, t.x + t.width), 10);
+
+                                   const handleMouseMove = (mv: MouseEvent) => {
+                                     const dx = Math.round((mv.clientX - startX) / GRID_SIZE);
+                                     if (currentFloor) {
+                                       updateDraftFloor(currentFloor.id, { width: Math.max(minRequiredW, startW + dx) });
+                                     }
+                                   };
+                                   const handleMouseUp = () => {
+                                     window.removeEventListener('mousemove', handleMouseMove);
+                                     window.removeEventListener('mouseup', handleMouseUp);
+                                   };
+                                   window.addEventListener('mousemove', handleMouseMove);
+                                   window.addEventListener('mouseup', handleMouseUp);
+                                 }}
+                               >
+                                  <ChevronRight size={32} />
+                               </div>
+                            </>
                          )}
                       </div>
+                   </motion.div>
+                 </>
+               ) : (
+                 <div className="w-full h-full p-20 overflow-y-auto bg-zinc-50 dark:bg-zinc-950 flex flex-col items-center">
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-10 w-full max-w-7xl">
+                       {activeTables.filter(t => t.floorId === activeFloorId).map(table => {
+                          const order = orders.find(o => o.tableId === table.id && o.status !== 'Paid');
+                          return (
+                            <motion.button
+                              key={table.id}
+                              whileHover={{ scale: 1.05, y: -5 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => setSelectedTableId(table.id)}
+                              className={`aspect-square p-8 rounded-[3rem] border-2 transition-all flex flex-col items-center justify-center gap-3 relative group ${
+                                selectedTableId === table.id ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xl shadow-indigo-600/30' :
+                                table.status === 'Occupied' ? 'bg-indigo-100 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800 text-indigo-600' :
+                                'bg-white dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800 text-zinc-900 dark:text-white shadow-sm'
+                              }`}
+                            >
+                               <span className="text-4xl font-black italic uppercase tracking-tighter">T{table.number}</span>
+                               <div className="flex items-center gap-2 text-[10px] font-black uppercase opacity-60">
+                                  <Users size={12} /> {table.capacity}
+                               </div>
+                               {order && (
+                                 <div className="absolute -bottom-2 px-4 py-1.5 bg-indigo-600 text-white rounded-full text-[10px] font-black italic shadow-lg">
+                                    ₹{order.total.toLocaleString()}
+                                 </div>
+                               )}
+                               {table.status === 'Occupied' && (
+                                 <div className="absolute top-4 right-4 w-3 h-3 bg-indigo-500 rounded-full animate-pulse" />
+                               )}
+                            </motion.button>
+                          );
+                       })}
+                    </div>
+                 </div>
+               )}
+            </div>
 
+            {/* MOVED OUTSIDE MAP CONTAINER TO PREVENT CLIPPING */}
+            <AnimatePresence>
+               {selectedTable && (
+                 <motion.div 
+                   initial={{ x: 100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 100, opacity: 0 }}
+                   className={`absolute right-12 top-[120px] bottom-[120px] w-[400px] backdrop-blur-3xl border rounded-[4rem] p-16 shadow-[0_60px_120px_-20px_rgba(0,0,0,0.6)] z-[200] flex flex-col gap-12 ${isEditMode ? 'bg-zinc-950/95 border-zinc-800 text-white' : 'bg-white/95 dark:bg-zinc-900/95 border-zinc-100 dark:border-zinc-800'}`}
+                 >
+                    <div className="flex items-center justify-between shrink-0">
+                       <div>
+                          <p className="text-xs font-black uppercase text-zinc-500 tracking-widest mb-1">{isEditMode ? 'Environmental Node' : 'Active Terminal'}</p>
+                          <h3 className="text-4xl font-black italic uppercase tracking-tighter">Table T{selectedTable.number}</h3>
+                       </div>
+                       <button onClick={() => setSelectedTableId(null)} className="p-3 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-2xl transition-all text-zinc-400 hover:text-rose-500">
+                          <XCircle size={32}/>
+                       </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto pr-2 space-y-12 scrollbar-hide">
                       {isEditMode ? (
                         <div className="space-y-8 animate-in fade-in zoom-in-95">
                            <p className="text-sm font-bold text-zinc-400 leading-relaxed italic border-l-4 border-indigo-600 pl-4">Use the on-canvas handles to reposition, orient, or scale this node within the floor borders.</p>
-                           <button onClick={() => setSelectedTableId(null)} className="w-full py-5 border border-white/10 rounded-3xl text-xs font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity">Deselect Node</button>
+                           <div className="p-10 bg-zinc-800/50 rounded-[3rem] border border-white/5 flex flex-col items-center justify-center gap-4 text-center">
+                             <Users size={32} className="text-indigo-400" />
+                             <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">Calculated Seat Node</span>
+                             <span className="text-4xl font-black text-white">{selectedTable.capacity} CAP</span>
+                           </div>
                         </div>
                       ) : (
                         <div className="space-y-12 animate-in fade-in slide-in-from-right-8">
@@ -569,14 +660,24 @@ const App: React.FC = () => {
                                 <div>
                                    <p className="text-5xl font-black dark:text-white tracking-tighter">₹{activeTableOrder.total.toLocaleString()}</p>
                                    <p className="text-xs font-bold text-indigo-500 mt-4 flex items-center gap-3"><Zap size={16} fill="currentColor"/> Neural Dispatch Active</p>
+                                   <div className="mt-8 pt-8 border-t border-zinc-100 dark:border-zinc-700 space-y-3">
+                                      {activeTableOrder.items.map(i => (
+                                        <div key={i.id} className="flex justify-between text-[11px] font-black uppercase tracking-widest opacity-60">
+                                          <span>{i.quantity}x {i.name}</span>
+                                          <span>₹{i.price * i.quantity}</span>
+                                        </div>
+                                      ))}
+                                   </div>
                                 </div>
                               ) : <p className="text-base font-bold text-zinc-500 italic uppercase tracking-widest opacity-50">Empty Node Terminal</p>}
                            </div>
+                           
                            <div className="space-y-4">
                               {selectedTable.status === 'Occupied' ? (
                                 <>
                                    <button onClick={() => clearTableBill(selectedTable.id)} className="w-full py-6 bg-indigo-600 text-white rounded-[2rem] text-xs font-black uppercase tracking-[0.2em] shadow-2xl shadow-indigo-500/40 hover:bg-indigo-700 transition-all active:scale-95">Complete Settle</button>
-                                   <button onClick={() => voidTableOrder(selectedTable.id)} className="w-full py-5.5 bg-rose-500/10 text-rose-500 rounded-[2rem] text-xs font-black uppercase tracking-[0.2em] hover:bg-rose-600 hover:text-white transition-all active:scale-95">Terminate Session</button>
+                                   <button onClick={() => { setActiveTab('pos'); setSelectedTableId(selectedTable.id); }} className="w-full py-5 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white border border-zinc-100 dark:border-zinc-700 rounded-[2rem] text-xs font-black uppercase tracking-[0.2em] hover:border-indigo-500 transition-all">Add Items</button>
+                                   <button onClick={() => voidTableOrder(selectedTable.id)} className="w-full py-4.5 bg-rose-500/10 text-rose-500 rounded-[2rem] text-xs font-black uppercase tracking-[0.2em] hover:bg-rose-600 hover:text-white transition-all active:scale-95">Terminate Session</button>
                                 </>
                               ) : (
                                 <button onClick={() => { setActiveTab('pos'); setSelectedTableId(selectedTable.id); }} className="w-full py-6 bg-zinc-950 dark:bg-zinc-100 text-white dark:text-zinc-950 rounded-[2rem] text-xs font-black uppercase tracking-[0.2em] hover:scale-105 transition-all shadow-2xl">Activate Node</button>
@@ -585,10 +686,14 @@ const App: React.FC = () => {
                            </div>
                         </div>
                       )}
-                   </motion.div>
-                 )}
-               </AnimatePresence>
-            </div>
+                    </div>
+
+                    {isEditMode && (
+                      <button onClick={() => deleteDraftTable(selectedTable.id)} className="shrink-0 w-full py-5 bg-rose-500/10 text-rose-500 rounded-3xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all">Delete Spatial Node</button>
+                    )}
+                 </motion.div>
+               )}
+            </AnimatePresence>
           </div>
         );
 
@@ -728,7 +833,7 @@ const App: React.FC = () => {
       <Toaster />
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} darkMode={darkMode} toggleDarkMode={() => setDarkMode(!darkMode)} user={user} onLogout={handleLogout} />
       <main className="flex-1 lg:ml-72 transition-all h-full relative">
-        {renderContent()}
+        {user ? renderContent() : <Auth onAuthSuccess={setUser} />}
       </main>
     </div>
   );
