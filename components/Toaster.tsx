@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -36,24 +35,24 @@ export const Toaster: React.FC = () => {
   }, []);
 
   return (
-    <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2 pointer-events-none">
+    <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-3 pointer-events-none w-full max-w-md px-4">
       <AnimatePresence>
         {activeToasts.map((t) => (
           <motion.div
             key={t.id}
-            initial={{ opacity: 0, y: -20, scale: 0.9 }}
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9, y: -10 }}
-            className={`px-4 py-2 rounded-full shadow-lg text-sm font-medium border backdrop-blur-md flex items-center gap-2 ${
-              t.type === 'success' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
-              t.type === 'error' ? 'bg-rose-500/10 text-rose-600 border-rose-500/20' :
-              'bg-indigo-500/10 text-indigo-600 border-indigo-500/20'
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            className={`w-full px-8 py-5 rounded-2xl shadow-2xl text-base font-semibold border flex items-center gap-4 ${
+              t.type === 'success' ? 'bg-emerald-600 text-white border-emerald-500' :
+              t.type === 'error' ? 'bg-rose-600 text-white border-rose-500' :
+              'bg-zinc-900 text-white border-zinc-800'
             }`}
           >
-            {t.type === 'success' && <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
-            {t.type === 'error' && <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />}
-            {t.type === 'info' && <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />}
-            {t.message}
+            {t.type === 'success' && <div className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />}
+            {t.type === 'error' && <div className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />}
+            {t.type === 'info' && <div className="w-2.5 h-2.5 rounded-full bg-indigo-400 animate-pulse" />}
+            <span className="flex-1">{t.message}</span>
           </motion.div>
         ))}
       </AnimatePresence>

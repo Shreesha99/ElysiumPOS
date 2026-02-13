@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   LayoutDashboard, 
@@ -28,7 +27,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, darkMode, to
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'pos', label: 'Terminal', icon: HandPlatter },
     { id: 'tables', label: 'Floor Map', icon: TableIcon },
-    { id: 'waiters', label: 'Waiters', icon: UserCheck },
+    { id: 'waiters', label: 'Staff', icon: UserCheck },
     { id: 'inventory', label: 'Assets', icon: Database },
     { id: 'insights', label: 'AI Strategy', icon: Sparkles },
   ];
@@ -42,7 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, darkMode, to
           </div>
           <div>
              <h1 className="font-extrabold text-lg tracking-tight dark:text-white uppercase">Elysium <span className="text-indigo-600">POS</span></h1>
-             <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Master Terminal</p>
+             <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Main Terminal</p>
           </div>
         </div>
 
@@ -83,7 +82,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, darkMode, to
               <p className="text-sm font-bold dark:text-white truncate">{user?.name}</p>
               <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Operator</p>
             </div>
-            <button onClick={onLogout} className="p-2 text-zinc-400 hover:text-rose-500 transition-colors"><LogOut size={16} /></button>
+            <button onClick={onLogout} title="Logout" className="p-2 text-zinc-400 hover:text-rose-500 transition-colors"><LogOut size={16} /></button>
           </div>
         </div>
       </aside>

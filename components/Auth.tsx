@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { authService, User } from '../services/authService';
 import { toast } from './Toaster';
@@ -17,7 +16,6 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   
-  // Field errors for inline validation
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validate = () => {
@@ -43,16 +41,15 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
     try {
       if (isLogin) {
         const user = await authService.login(username, password);
-        toast(`Terminal Access Granted: Welcome ${user.name}`, 'success');
+        toast(`Welcome back, ${user.name}`, 'success');
         onAuthSuccess(user);
       } else {
         const user = await authService.signup(name, email, username, password);
-        toast(`Enterprise Node Created: ${user.name}`, 'success');
+        toast(`Account created for ${user.name}`, 'success');
         onAuthSuccess(user);
       }
     } catch (err: any) {
       toast(err.message, 'error');
-      // If the error matches a field, we can highlight it
       if (err.message.toLowerCase().includes('email')) setErrors(prev => ({...prev, email: err.message}));
       if (err.message.toLowerCase().includes('username')) setErrors(prev => ({...prev, username: err.message}));
     } finally {
@@ -60,9 +57,12 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
     }
   };
 
+  const handleForgotKey = () => {
+    toast("Security reset instructions sent to your registered email.", "info");
+  };
+
   return (
     <div className="min-h-screen w-full flex flex-col md:flex-row bg-white dark:bg-zinc-950 font-sans">
-      {/* Brand Side (Desktop Only) */}
       <div className="hidden md:flex md:w-1/2 bg-zinc-950 dark:bg-black relative overflow-hidden items-center justify-center p-20">
         <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
           <div className="absolute top-[-20%] left-[-20%] w-[80%] h-[80%] bg-indigo-600 blur-[180px] rounded-full animate-pulse" />
@@ -81,7 +81,7 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-6xl font-black text-white italic tracking-tighter mb-6 uppercase"
+            className="text-6xl font-black text-white tracking-tighter mb-6 uppercase"
           >
             Elysium <span className="text-indigo-500">POS</span>
           </motion.h2>
@@ -91,7 +91,7 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
             transition={{ delay: 0.2 }}
             className="text-zinc-400 text-lg font-medium leading-relaxed"
           >
-            Deploy the world's most advanced restaurant intelligence system. Unified operations, real-time analytics, and neural-driven hospitality.
+            Manage your restaurant with the world's most advanced intelligence system. Unified operations, real-time analytics, and automated hospitality.
           </motion.p>
           
           <motion.div 
@@ -102,17 +102,16 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
           >
             <div>
               <p className="text-white font-black text-2xl tracking-tighter">99.9%</p>
-              <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Uptime Cluster</p>
+              <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Uptime guarantee</p>
             </div>
             <div>
               <p className="text-white font-black text-2xl tracking-tighter">12ms</p>
-              <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Global Latency</p>
+              <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Response time</p>
             </div>
           </motion.div>
         </div>
       </div>
 
-      {/* Form Side */}
       <div className="flex-1 flex items-center justify-center p-8 md:p-20 relative">
         <motion.div 
           initial={{ opacity: 0, x: 20 }}
@@ -120,11 +119,11 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
           className="w-full max-w-[420px]"
         >
           <div className="mb-12">
-            <h1 className="text-4xl font-black dark:text-white tracking-tighter uppercase italic">
-              {isLogin ? 'Initialize Node' : 'Register Operator'}
+            <h1 className="text-4xl font-black dark:text-white tracking-tighter uppercase">
+              {isLogin ? 'Login' : 'Register access'}
             </h1>
             <p className="text-zinc-500 text-sm font-semibold mt-2">
-              {isLogin ? 'Enter your credentials to access the master terminal.' : 'Create a new operator profile for your enterprise.'}
+              {isLogin ? 'Enter your credentials to access the point of sale.' : 'Create a new operator account for your restaurant.'}
             </p>
           </div>
 
@@ -138,11 +137,11 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
                   className="space-y-5 overflow-hidden"
                 >
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest ml-1">Enterprise Name</label>
+                    <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest ml-1">Full name</label>
                     <div className="relative">
                       <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-300" size={18} />
                       <input 
-                        required={!isLogin} type="text" placeholder="Alex Rivers" value={name} onChange={(e) => {setName(e.target.value); setErrors({...errors, name: ''});}}
+                        required={!isLogin} type="text" placeholder="John Doe" value={name} onChange={(e) => {setName(e.target.value); setErrors({...errors, name: ''});}}
                         className={`w-full pl-12 pr-4 py-4 bg-zinc-50 dark:bg-zinc-900 border ${errors.name ? 'border-rose-500 ring-1 ring-rose-500/20' : 'border-zinc-100 dark:border-zinc-800'} rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white font-bold text-sm`} 
                       />
                     </div>
@@ -150,11 +149,11 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest ml-1">Work Email Address</label>
+                    <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest ml-1">Email address</label>
                     <div className="relative">
                       <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-300" size={18} />
                       <input 
-                        required={!isLogin} type="email" placeholder="alex@elysium.com" value={email} onChange={(e) => {setEmail(e.target.value); setErrors({...errors, email: ''});}}
+                        required={!isLogin} type="email" placeholder="john@example.com" value={email} onChange={(e) => {setEmail(e.target.value); setErrors({...errors, email: ''});}}
                         className={`w-full pl-12 pr-4 py-4 bg-zinc-50 dark:bg-zinc-900 border ${errors.email ? 'border-rose-500 ring-1 ring-rose-500/20' : 'border-zinc-100 dark:border-zinc-800'} rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white font-bold text-sm`} 
                       />
                     </div>
@@ -165,11 +164,11 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
             </AnimatePresence>
             
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest ml-1">Terminal ID (Username)</label>
+              <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest ml-1">Username</label>
               <div className="relative">
                 <Fingerprint className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-300" size={18} />
                 <input 
-                  required type="text" placeholder="ops_admin_01" value={username} onChange={(e) => {setUsername(e.target.value); setErrors({...errors, username: ''});}}
+                  required type="text" placeholder="admin_user" value={username} onChange={(e) => {setUsername(e.target.value); setErrors({...errors, username: ''});}}
                   className={`w-full pl-12 pr-4 py-4 bg-zinc-50 dark:bg-zinc-900 border ${errors.username ? 'border-rose-500 ring-1 ring-rose-500/20' : 'border-zinc-100 dark:border-zinc-800'} rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white font-bold text-sm tracking-tight`} 
                 />
               </div>
@@ -178,13 +177,13 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
 
             <div className="space-y-1.5">
               <div className="flex justify-between items-center px-1">
-                <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Master Key</label>
-                {isLogin && <button type="button" className="text-[10px] font-black uppercase text-indigo-500 hover:text-indigo-600 tracking-widest transition-colors">Forgot Key?</button>}
+                <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Passcode</label>
+                {isLogin && <button type="button" onClick={handleForgotKey} className="text-[10px] font-black uppercase text-indigo-500 hover:text-indigo-600 tracking-widest transition-colors">Forgot key?</button>}
               </div>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-300" size={18} />
                 <input 
-                  required type="password" placeholder="••••••••••••" value={password} onChange={(e) => {setPassword(e.target.value); setErrors({...errors, password: ''});}}
+                  required type="password" placeholder="••••••••" value={password} onChange={(e) => {setPassword(e.target.value); setErrors({...errors, password: ''});}}
                   className={`w-full pl-12 pr-4 py-4 bg-zinc-50 dark:bg-zinc-900 border ${errors.password ? 'border-rose-500 ring-1 ring-rose-500/20' : 'border-zinc-100 dark:border-zinc-800'} rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all dark:text-white font-bold text-sm`} 
                 />
               </div>
@@ -199,7 +198,7 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
                 <Loader2 size={18} className="animate-spin" />
               ) : (
                 <>
-                  <span className="relative z-10">{isLogin ? 'Access Terminal' : 'Establish Node'}</span>
+                  <span className="relative z-10">{isLogin ? 'Login to POS' : 'Register access'}</span>
                   <ChevronRight size={18} className="relative z-10 group-hover:translate-x-1 transition-transform" />
                   <motion.div 
                     className="absolute inset-0 bg-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -216,9 +215,9 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
               className="text-[10px] font-black text-zinc-400 hover:text-indigo-600 transition-all uppercase tracking-[0.2em] flex items-center justify-center gap-2 mx-auto"
             >
               {isLogin ? (
-                <>Request Node Access <ChevronRight size={14}/></>
+                <>Register access <ChevronRight size={14}/></>
               ) : (
-                <><ArrowLeft size={14}/> Back to Terminal Login</>
+                <><ArrowLeft size={14}/> Back to login</>
               )}
             </button>
           </div>

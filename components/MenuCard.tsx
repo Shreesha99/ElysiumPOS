@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { MenuItem } from '../types';
 import { Plus, Zap } from 'lucide-react';
@@ -19,13 +18,13 @@ const MenuCard: React.FC<MenuCardProps> = ({ item, onAddToCart }) => {
           alt={item.name} 
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
-        <div className="absolute top-3 right-3 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-lg border border-white/20">
+        <div className="absolute top-3 right-3 bg-white dark:bg-zinc-900 px-3 py-1.5 rounded-xl shadow-lg border border-zinc-100 dark:border-zinc-800">
           <span className="text-zinc-900 dark:text-white font-extrabold text-sm">₹{item.price.toLocaleString()}</span>
         </div>
 
         {item.stock < 10 && (
           <div className="absolute top-3 left-3 bg-rose-500 px-2 py-1 rounded-lg text-[8px] font-bold text-white uppercase tracking-widest shadow-lg flex items-center gap-1">
-            <Zap size={8} fill="currentColor" /> Low Stock
+            <Zap size={8} fill="currentColor" /> Low stock
           </div>
         )}
       </div>
@@ -42,7 +41,7 @@ const MenuCard: React.FC<MenuCardProps> = ({ item, onAddToCart }) => {
             }}
             className="w-full py-3 bg-zinc-50 dark:bg-zinc-800 group-hover:bg-indigo-600 text-zinc-900 dark:text-white group-hover:text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-95"
           >
-            <Plus size={14} /> Add to Terminal
+            <Plus size={14} /> Add to cart
           </button>
         </div>
       </div>
