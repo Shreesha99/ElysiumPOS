@@ -10,6 +10,7 @@ import {
   LogOut,
   ChevronRight,
   UserCheck,
+  MoreHorizontal,
 } from "lucide-react";
 import { User } from "../services/authService";
 
@@ -38,6 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: "inventory", label: "Assets", icon: Database },
     { id: "insights", label: "AI Strategy", icon: Sparkles },
   ];
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   return (
     <>
@@ -117,22 +119,100 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </aside>
 
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 h-20 bg-white dark:bg-zinc-950 border-t border-zinc-100 dark:border-zinc-900 z-50 px-4 flex items-center justify-around">
-        {navItems.map((item) => (
+      {/* MOBILE NAV */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 h-20 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 z-50">
+        <div className="h-full max-w-md mx-auto flex items-center justify-around px-4">
+          {navItems.slice(0, 4).map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`flex flex-col items-center justify-center gap-1 w-14 transition-all ${
+                activeTab === item.id ? "text-indigo-600" : "text-zinc-400"
+              }`}
+            >
+              <item.icon size={20} />
+              <span className="text-[8px] font-medium uppercase text-center leading-tight">
+                {item.label}
+              </span>
+            </button>
+          ))}
+
+          {/* MORE BUTTON */}
           <button
-            key={item.id}
-            onClick={() => setActiveTab(item.id)}
-            className={`flex flex-col items-center gap-1 transition-all ${
-              activeTab === item.id
-                ? "text-indigo-600 scale-110"
-                : "text-zinc-400"
-            }`}
+            onClick={() => setMobileMenuOpen(true)}
+            className="flex flex-col items-center justify-center gap-1 w-14 text-zinc-400"
           >
-            <item.icon size={20} />
-            <span className="text-[8px] font-bold uppercase">{item.label}</span>
+            <MoreHorizontal size={20} />
+            <span className="text-[8px] font-medium uppercase text-center leading-tight">
+              More
+            </span>
           </button>
-        ))}
+        </div>
       </div>
+
+      {mobileMenuOpen && (
+        <div className="lg:hidden fixed inset-0 z-[60]">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+
+          {/* Sheet */}
+          <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-zinc-950 rounded-t-3xl p-6 space-y-6 border-t border-zinc-200 dark:border-zinc-800">
+            {/* Remaining Nav Items */}
+            <div className="space-y-3">
+              {navItems.slice(4).map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-900 text-sm"
+                >
+                  <item.icon size={18} />
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-zinc-200 dark:border-zinc-800" />
+
+            {/* Theme Toggle */}
+            <button
+              onClick={toggleDarkMode}
+              className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-900 text-sm"
+            >
+              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+              {darkMode ? "Light Theme" : "Dark Theme"}
+            </button>
+
+            {/* Profile */}
+            <div className="flex items-center gap-3 p-3 bg-zinc-100 dark:bg-zinc-900 rounded-xl">
+              <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold">
+                {user?.name?.charAt(0)}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium dark:text-white">
+                  {user?.name}
+                </p>
+                <p className="text-xs text-zinc-400">Operator</p>
+              </div>
+            </div>
+
+            {/* Logout */}
+            <button
+              onClick={onLogout}
+              className="w-full flex items-center gap-3 p-3 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 text-sm"
+            >
+              <LogOut size={18} />
+              Logout
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 };

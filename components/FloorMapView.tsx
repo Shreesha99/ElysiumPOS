@@ -257,52 +257,86 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
     <div className="h-full flex flex-col bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 relative overflow-hidden">
       {/* Header - Scaled for Mobile */}
       <header className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-40">
-        <div className="max-w-[1600px] mx-auto px-6 py-6 flex items-center justify-between gap-6">
-          {/* LEFT */}
-          <div className="flex items-center gap-6 min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-semibold text-zinc-900 dark:text-white whitespace-nowrap">
-              Floor Map{" "}
-              {isEditMode && (
-                <span className="ml-2 text-[10px] bg-rose-600 text-white px-3 py-1 rounded-full animate-pulse">
-                  Edit
-                </span>
-              )}
-            </h1>
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-5 space-y-5">
+          {/* ROW 1 */}
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            {/* LEFT */}
+            <div className="flex items-center justify-between lg:justify-start gap-4">
+              <h1 className="text-xl sm:text-2xl font-semibold text-zinc-900 dark:text-white whitespace-nowrap">
+                Floor Map
+                {isEditMode && (
+                  <span className="ml-2 text-[10px] bg-rose-600 text-white px-2.5 py-1 rounded-full animate-pulse">
+                    Edit
+                  </span>
+                )}
+              </h1>
 
-            {/* View Toggle */}
-            <div className="flex items-center gap-1 px-2 py-1 rounded-lg border border-zinc-300 dark:border-zinc-700">
-              <button
-                onClick={() => setViewMode("2d")}
-                className={`px-3 py-1.5 rounded-md text-sm transition ${
-                  viewMode === "2d"
-                    ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-                    : "text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                }`}
-              >
-                <Layers size={16} />
-              </button>
-              <button
-                onClick={() => setViewMode("3d")}
-                className={`px-3 py-1.5 rounded-md text-sm transition ${
-                  viewMode === "3d"
-                    ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-                    : "text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                }`}
-              >
-                <Box size={16} />
-              </button>
+              {/* View Toggle */}
+              <div className="flex items-center gap-1 px-2 py-1 rounded-lg border border-zinc-300 dark:border-zinc-700">
+                <button
+                  onClick={() => setViewMode("2d")}
+                  className={`px-3 py-1.5 rounded-md text-sm transition ${
+                    viewMode === "2d"
+                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+                      : "text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  }`}
+                >
+                  <Layers size={16} />
+                </button>
+                <button
+                  onClick={() => setViewMode("3d")}
+                  className={`px-3 py-1.5 rounded-md text-sm transition ${
+                    viewMode === "3d"
+                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+                      : "text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  }`}
+                >
+                  <Box size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* RIGHT ACTIONS */}
+            <div className="flex items-center gap-3 justify-end">
+              {!isEditMode && viewMode === "3d" && !isMobile && (
+                <button
+                  onClick={enterEditMode}
+                  className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                >
+                  <Settings2 size={16} />
+                  Edit Mode
+                </button>
+              )}
+
+              {isEditMode && (
+                <>
+                  <button
+                    onClick={cancelEdit}
+                    className="px-4 py-2 rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 text-sm transition"
+                  >
+                    Discard
+                  </button>
+
+                  <button
+                    onClick={saveEdit}
+                    className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-700 transition"
+                  >
+                    Save
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
-          {/* CENTER FLOORS */}
-          <div className="flex-1 flex items-center justify-center gap-2 overflow-x-auto no-scrollbar">
+          {/* ROW 2 – FLOORS */}
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
             <div className="flex gap-2 shrink-0">
               {activeFloors.map((f) => (
                 <div key={f.id} className="relative flex items-center">
                   {editingFloorId === f.id ? (
                     <input
                       autoFocus
-                      className="px-4 py-2 rounded-lg text-sm bg-white dark:bg-zinc-900 border border-indigo-500 outline-none w-32"
+                      className="px-4 py-2 rounded-lg text-sm bg-white dark:bg-zinc-900 border border-indigo-500 outline-none w-28"
                       value={f.name}
                       onChange={(e) =>
                         updateDraftFloor(f.id, { name: e.target.value })
@@ -319,7 +353,7 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                         if (isEditMode && activeFloorId === f.id)
                           setEditingFloorId(f.id);
                       }}
-                      className={`px-4 py-2 rounded-lg text-sm transition border ${
+                      className={`px-4 py-2 rounded-lg text-sm transition border whitespace-nowrap ${
                         activeFloorId === f.id
                           ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent"
                           : "bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800"
@@ -339,37 +373,6 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
               >
                 <Plus size={16} />
               </button>
-            )}
-          </div>
-
-          {/* RIGHT ACTIONS */}
-          <div className="flex items-center justify-end gap-3 shrink-0">
-            {!isEditMode && viewMode === "3d" && !isMobile && (
-              <button
-                onClick={enterEditMode}
-                className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-              >
-                <Settings2 size={16} />
-                Edit Mode
-              </button>
-            )}
-
-            {isEditMode && (
-              <>
-                <button
-                  onClick={cancelEdit}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 text-sm transition"
-                >
-                  Discard
-                </button>
-
-                <button
-                  onClick={saveEdit}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-700 transition"
-                >
-                  Save
-                </button>
-              </>
             )}
           </div>
         </div>
