@@ -74,107 +74,91 @@ const POSView: React.FC<POSViewProps> = ({
   const cartItemsCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
-    <div className="flex w-full min-h-[100dvh] flex-col lg:flex-row bg-zinc-50 dark:bg-zinc-950 overflow-x-hidden">
+    <div className="flex w-full h-[100dvh] flex-col lg:flex-row bg-zinc-50 dark:bg-zinc-950 overflow-hidden">
       {/* MAIN AREA */}
-      <div className="flex-1 flex flex-col min-w-0 border-r border-zinc-100 dark:border-zinc-900">
+      <div className="flex-1 flex flex-col min-w-0 border-r border-zinc-200 dark:border-zinc-800 overflow-hidden">
         {/* HEADER */}
-        <header className="px-4 sm:px-6 lg:px-8 py-4 bg-white dark:bg-zinc-950 border-b border-zinc-100 dark:border-zinc-900 sticky top-0 z-30 shadow-sm">
-          <div className="max-w-[1800px] mx-auto space-y-4">
+        <header className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-40 shrink-0">
+          <div className="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
             {/* TIER 1 */}
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-3 min-w-0">
-                <h1 className="text-lg sm:text-xl lg:text-2xl font-black uppercase tracking-tight dark:text-white truncate">
+            <div className="flex flex-wrap items-center justify-between gap-6">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-semibold dark:text-white">
                   Order Hub
                 </h1>
-                <span className="hidden sm:flex items-center gap-1.5 px-2 py-1 bg-zinc-100 dark:bg-zinc-900 text-[9px] font-black text-zinc-400 uppercase tracking-widest rounded-md border border-zinc-200 dark:border-zinc-800">
-                  <Tag size={10} className="text-indigo-500" /> Catalog
-                </span>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+                  Browse catalog and manage live orders
+                </p>
               </div>
 
-              <div className="flex bg-zinc-100 dark:bg-zinc-900 p-1 rounded-xl border border-zinc-200 dark:border-zinc-800">
-                <button
-                  onClick={() => setOrderType("Dining")}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                    orderType === "Dining"
-                      ? "bg-white dark:bg-zinc-800 text-indigo-600 shadow-sm"
-                      : "text-zinc-400"
-                  }`}
-                >
-                  <Utensils size={14} /> Dining
-                </button>
+              <div className="flex items-center gap-3">
+                <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                  <button
+                    onClick={() => setOrderType("Dining")}
+                    className={`px-4 py-2 rounded-md text-sm transition ${
+                      orderType === "Dining"
+                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+                        : "text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                    }`}
+                  >
+                    Dining
+                  </button>
 
-                <button
-                  onClick={() => {
-                    setOrderType("Takeaway");
-                    setSelectedTableId(null);
-                  }}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                    orderType === "Takeaway"
-                      ? "bg-white dark:bg-zinc-800 text-indigo-600 shadow-sm"
-                      : "text-zinc-400"
-                  }`}
-                >
-                  <ShoppingBag size={14} /> Takeaway
-                </button>
+                  <button
+                    onClick={() => {
+                      setOrderType("Takeaway");
+                      setSelectedTableId(null);
+                    }}
+                    className={`px-4 py-2 rounded-md text-sm transition ${
+                      orderType === "Takeaway"
+                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+                        : "text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                    }`}
+                  >
+                    Takeaway
+                  </button>
+                </div>
               </div>
             </div>
 
             {/* TIER 2 */}
             <div className="flex flex-col lg:flex-row gap-4">
-              <AnimatePresence mode="wait">
-                {orderType === "Dining" && (
-                  <motion.div
-                    key={selectedTable ? "table" : "no-table"}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -10 }}
-                    className={`flex items-center justify-between gap-3 px-4 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest min-w-[180px] ${
-                      selectedTable
-                        ? "bg-emerald-50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-800/50 text-emerald-600"
-                        : "bg-rose-50 dark:bg-rose-900/10 border-rose-100 dark:border-rose-800/50 text-rose-500"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 truncate">
-                      {selectedTable ? (
-                        <CheckCircle2 size={14} />
-                      ) : (
-                        <Utensils size={14} />
-                      )}
-                      <span className="truncate">
-                        {selectedTable
-                          ? `Node: T-${selectedTable.number}`
-                          : "Select a table for dining order"}
-                      </span>
-                    </div>
+              {/* TABLE STATUS */}
+              {orderType === "Dining" && (
+                <div
+                  className={`flex items-center justify-between gap-3 px-4 py-2 rounded-lg border text-sm min-w-[220px] ${
+                    selectedTable
+                      ? "bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800 text-emerald-600"
+                      : "bg-rose-50 dark:bg-rose-900/10 border-rose-200 dark:border-rose-800 text-rose-500"
+                  }`}
+                >
+                  <span>
+                    {selectedTable
+                      ? `Table T-${selectedTable.number}`
+                      : "No table selected"}
+                  </span>
 
-                    {selectedTable && (
-                      <button onClick={() => setSelectedTableId(null)}>
-                        <X size={14} />
-                      </button>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                  {selectedTable && (
+                    <button onClick={() => setSelectedTableId(null)}>
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* SEARCH */}
-              <div className="flex-1 relative group">
-                <div className="flex items-center gap-3 bg-zinc-100 dark:bg-zinc-900 px-4 py-3 rounded-xl border border-transparent group-focus-within:border-indigo-500/50 group-focus-within:bg-white dark:group-focus-within:bg-zinc-800 transition-all shadow-inner">
-                  <Search
-                    size={16}
-                    className="text-zinc-400 group-focus-within:text-indigo-500"
-                  />
+              <div className="flex-1">
+                <div className="flex items-center gap-3 bg-zinc-100 dark:bg-zinc-800 px-4 py-3 rounded-lg border border-zinc-200 dark:border-zinc-700 focus-within:ring-2 focus-within:ring-indigo-500 transition">
+                  <Search size={16} className="text-zinc-400" />
                   <input
-                    placeholder="Search catalog assets..."
+                    placeholder="Search menu..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="bg-transparent outline-none w-full text-sm font-semibold dark:text-white placeholder:text-zinc-400"
+                    className="bg-transparent outline-none w-full text-sm dark:text-white"
                   />
                   {searchQuery && (
                     <button onClick={() => setSearchQuery("")}>
-                      <X
-                        size={16}
-                        className="text-zinc-400 hover:text-rose-500"
-                      />
+                      <X size={16} className="text-zinc-400" />
                     </button>
                   )}
                 </div>
@@ -182,8 +166,8 @@ const POSView: React.FC<POSViewProps> = ({
             </div>
 
             {/* CATEGORY */}
-            <div className="w-full overflow-x-auto scrollbar-none">
-              <div className="flex gap-2 w-max min-w-full">
+            <div className="w-full overflow-x-auto">
+              <div className="flex gap-2">
                 {CATEGORIES.map((cat) => (
                   <button
                     key={cat}
@@ -191,10 +175,10 @@ const POSView: React.FC<POSViewProps> = ({
                       setActiveCategory(cat);
                       setSearchQuery("");
                     }}
-                    className={`shrink-0 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border whitespace-nowrap ${
+                    className={`px-4 py-2 rounded-lg text-sm border transition whitespace-nowrap ${
                       activeCategory === cat && searchQuery === ""
-                        ? "bg-indigo-600 text-white border-indigo-600 shadow-lg"
-                        : "bg-white dark:bg-zinc-900 text-zinc-500 border-zinc-200 dark:border-zinc-800"
+                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent"
+                        : "bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800"
                     }`}
                   >
                     {cat}
@@ -206,10 +190,7 @@ const POSView: React.FC<POSViewProps> = ({
         </header>
 
         {/* GRID */}
-        <div
-          className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 pb-[110px] lg:pb-8
-"
-        >
+        <div className="flex-1 overflow-y-auto px-6 py-6">
           <div className="w-full lg:max-w-[1800px] lg:mx-auto">
             {filteredItems.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
