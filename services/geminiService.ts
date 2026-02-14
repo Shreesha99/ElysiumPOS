@@ -1,13 +1,22 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { MenuItem, CartItem, BusinessInsight } from "../types";
 
 const getAIClient = () => {
   const apiKey = process.env.API_KEY;
-  // Standard check for missing or placeholder keys
-  if (!apiKey || apiKey === "API_KEY" || apiKey === "undefined") {
+  
+  // If API key is missing or is just the default placeholder string
+  if (!apiKey || apiKey === "API_KEY" || apiKey === "undefined" || apiKey.trim() === "") {
+    console.error("Gemini Service: No valid API key found in environment.");
     return null;
   }
-  return new GoogleGenAI({ apiKey });
+  
+  try {
+    return new GoogleGenAI({ apiKey });
+  } catch (e) {
+    console.error("Gemini Service: Failed to initialize client.", e);
+    return null;
+  }
 };
 
 export const geminiService = {
