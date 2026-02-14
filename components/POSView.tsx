@@ -143,7 +143,7 @@ const POSView: React.FC<POSViewProps> = ({
                       <span className="truncate">
                         {selectedTable
                           ? `Node: T-${selectedTable.number}`
-                          : "Select Floor Node"}
+                          : "Select a table for dining order"}
                       </span>
                     </div>
 
