@@ -35,7 +35,10 @@ const App: React.FC = () => {
   const [user, setUser] = useState<AppUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
-  const [activeTab, setActiveTab] = useState("pos");
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem("elysium_active_tab") || "pos";
+  });
+
   const [darkMode, setDarkMode] = useState(
     () => localStorage.getItem("elysium_theme") === "dark"
   );
@@ -115,6 +118,9 @@ const App: React.FC = () => {
 
     loadRestaurantData();
   }, [user]);
+  useEffect(() => {
+    localStorage.setItem("elysium_active_tab", activeTab);
+  }, [activeTab]);
 
   useEffect(() => {
     if (floors.length > 0 && !activeFloorId) {
