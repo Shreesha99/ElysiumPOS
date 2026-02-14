@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import Auth from './components/Auth';
 import { Toaster, toast } from './components/Toaster';
@@ -6,7 +6,6 @@ import { MenuItem, Category, BusinessInsight, Table, Waiter, Order, Floor, CartI
 import { INITIAL_MENU_ITEMS, CATEGORIES, INITIAL_TABLES, INITIAL_WAITERS, INITIAL_FLOORS } from './constants';
 import { geminiService } from './services/geminiService';
 import { authService, User } from './services/authService';
-import { Loader2 } from 'lucide-react';
 
 // View Components
 import DashboardView from './components/DashboardView';
@@ -24,15 +23,45 @@ const App: React.FC = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
   
-  // Persistence Lock
-  const [hasHydrated, setHasHydrated] = useState(false);
+  // Helper to generate storage keys scoped to the current user
+  const getUserKey = (key: string, u: User | null = user) => u ? `elysium_${u.id}_${key}` : null;
 
-  // User-scoped data states
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [floors, setFloors] = useState<Floor[]>([]);
-  const [tables, setTables] = useState<Table[]>([]);
-  const [waiters, setWaiters] = useState<Waiter[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
+  // ATOMIC INITIALIZATION: We load data immediately in the state initializer 
+  // to prevent race conditions during the first render.
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(() => {
+    const u = authService.getCurrentUser();
+    if (!u) return [];
+    const saved = localStorage.getItem(`elysium_${u.id}_menu`);
+    return saved ? JSON.parse(saved) : INITIAL_MENU_ITEMS;
+  });
+
+  const [floors, setFloors] = useState<Floor[]>(() => {
+    const u = authService.getCurrentUser();
+    if (!u) return [];
+    const saved = localStorage.getItem(`elysium_${u.id}_floors`);
+    return saved ? JSON.parse(saved) : INITIAL_FLOORS;
+  });
+
+  const [tables, setTables] = useState<Table[]>(() => {
+    const u = authService.getCurrentUser();
+    if (!u) return [];
+    const saved = localStorage.getItem(`elysium_${u.id}_tables`);
+    return saved ? JSON.parse(saved) : INITIAL_TABLES;
+  });
+
+  const [waiters, setWaiters] = useState<Waiter[]>(() => {
+    const u = authService.getCurrentUser();
+    if (!u) return [];
+    const saved = localStorage.getItem(`elysium_${u.id}_waiters`);
+    return saved ? JSON.parse(saved) : INITIAL_WAITERS;
+  });
+
+  const [orders, setOrders] = useState<Order[]>(() => {
+    const u = authService.getCurrentUser();
+    if (!u) return [];
+    const saved = localStorage.getItem(`elysium_${u.id}_orders`);
+    return saved ? JSON.parse(saved) : [];
+  });
 
   const [isEditMode, setIsEditMode] = useState(false);
   const [draftTables, setDraftTables] = useState<Table[]>([]);
@@ -41,7 +70,7 @@ const App: React.FC = () => {
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
-  const [activeFloorId, setActiveFloorId] = useState<string>('');
+  const [activeFloorId, setActiveFloorId] = useState<string>(() => floors[0]?.id || '');
   const [orderType, setOrderType] = useState<OrderType>('Dining');
 
   const [mapRotation, setMapRotation] = useState(-20);
@@ -55,47 +84,49 @@ const App: React.FC = () => {
 
   const [liveTraffic, setLiveTraffic] = useState(Math.floor(Math.random() * 50) + 20);
 
-  // Unified Storage Access
-  const getUserKey = useCallback((key: string) => user ? `elysium_${user.id}_${key}` : null, [user]);
-
-  // Hydrate once when user changes
+  // Persistence: Save only when user is logged in
   useEffect(() => {
     if (user) {
-      const m = localStorage.getItem(getUserKey('menu')!);
-      const f = localStorage.getItem(getUserKey('floors')!);
-      const t = localStorage.getItem(getUserKey('tables')!);
-      const w = localStorage.getItem(getUserKey('waiters')!);
-      const o = localStorage.getItem(getUserKey('orders')!);
-
-      setMenuItems(m ? JSON.parse(m) : INITIAL_MENU_ITEMS);
-      const loadedFloors = f ? JSON.parse(f) : INITIAL_FLOORS;
-      setFloors(loadedFloors);
-      setTables(t ? JSON.parse(t) : INITIAL_TABLES);
-      setWaiters(w ? JSON.parse(w) : INITIAL_WAITERS);
-      setOrders(o ? JSON.parse(o) : []);
-      
-      if (loadedFloors.length > 0) setActiveFloorId(loadedFloors[0].id);
-      setHasHydrated(true);
-    } else {
-      setHasHydrated(false);
-      setMenuItems([]);
-      setFloors([]);
-      setTables([]);
-      setWaiters([]);
-      setOrders([]);
-    }
-  }, [user, getUserKey]);
-
-  // Atomic Save logic - only saves if hydrated to prevent overwriting with []
-  useEffect(() => {
-    if (user && hasHydrated) {
       localStorage.setItem(getUserKey('menu')!, JSON.stringify(menuItems));
       localStorage.setItem(getUserKey('floors')!, JSON.stringify(floors));
       localStorage.setItem(getUserKey('tables')!, JSON.stringify(tables));
       localStorage.setItem(getUserKey('waiters')!, JSON.stringify(waiters));
       localStorage.setItem(getUserKey('orders')!, JSON.stringify(orders));
     }
-  }, [user, hasHydrated, menuItems, floors, tables, waiters, orders, getUserKey]);
+  }, [user, menuItems, floors, tables, waiters, orders]);
+
+  // Handle cross-user segregation: Re-initialize state when user object changes (Login/Logout)
+  const handleAuthSuccess = (u: User) => {
+    setUser(u);
+    const m = localStorage.getItem(getUserKey('menu', u)!);
+    const f = localStorage.getItem(getUserKey('floors', u)!);
+    const t = localStorage.getItem(getUserKey('tables', u)!);
+    const w = localStorage.getItem(getUserKey('waiters', u)!);
+    const o = localStorage.getItem(getUserKey('orders', u)!);
+
+    setMenuItems(m ? JSON.parse(m) : INITIAL_MENU_ITEMS);
+    const loadedFloors = f ? JSON.parse(f) : INITIAL_FLOORS;
+    setFloors(loadedFloors);
+    setTables(t ? JSON.parse(t) : INITIAL_TABLES);
+    setWaiters(w ? JSON.parse(w) : INITIAL_WAITERS);
+    setOrders(o ? JSON.parse(o) : []);
+    if (loadedFloors.length > 0) setActiveFloorId(loadedFloors[0].id);
+  };
+
+  const handleLogout = () => {
+    authService.logout();
+    setUser(null);
+    setMenuItems([]);
+    setFloors([]);
+    setTables([]);
+    setWaiters([]);
+    setOrders([]);
+    setCart([]);
+    setSelectedTableId(null);
+    setInsights([]);
+    setInsightError(null);
+    toast("User session terminated", "info");
+  };
 
   const activeTables = isEditMode ? draftTables : tables;
   const activeFloors = isEditMode ? draftFloors : floors;
@@ -103,9 +134,10 @@ const App: React.FC = () => {
   const selectedTable = useMemo(() => activeTables.find(t => t.id === selectedTableId), [activeTables, selectedTableId]);
   
   const stats = useMemo(() => {
-    const totalRevenue = orders.filter(o => o.status === 'Paid').reduce((acc, o) => acc + o.total, 0);
+    const settledOrders = orders.filter(o => o.status === 'Paid');
+    const totalRevenue = settledOrders.reduce((acc, o) => acc + o.total, 0);
     const pendingOrdersCount = orders.filter(o => o.status !== 'Paid').length;
-    const avgOrderValue = orders.length > 0 ? totalRevenue / orders.length : 0;
+    const avgOrderValue = settledOrders.length > 0 ? totalRevenue / settledOrders.length : 0;
     const occupiedTables = tables.filter(t => t.status === 'Occupied').length;
     const occupancyRate = (occupiedTables / (tables.length || 1)) * 100;
     const hourlySales = Array.from({ length: 12 }, (_, i) => ({
@@ -136,7 +168,7 @@ const App: React.FC = () => {
     localStorage.setItem('elysium_theme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
 
-  // Handle upselling logic when cart changes
+  // Upselling suggestions
   useEffect(() => {
     const timer = setTimeout(async () => {
       if (cart.length > 0 && menuItems.length > 0) {
@@ -145,7 +177,7 @@ const App: React.FC = () => {
       } else {
         setUpsellSuggestions([]);
       }
-    }, 1000);
+    }, 1200);
     return () => clearTimeout(timer);
   }, [cart, menuItems]);
 
@@ -162,24 +194,13 @@ const App: React.FC = () => {
       });
       setInsights(data);
     } catch (err: any) {
-      if (err.message === "API_KEY_MISSING") {
-        setInsightError("KEY_MISSING");
-      } else if (err.message === "QUOTA_EXHAUSTED") {
-        setInsightError("QUOTA_REACHED");
-      } else {
-        setInsightError("GENERAL_ERROR");
-      }
+      if (err.message === "API_KEY_MISSING") setInsightError("KEY_MISSING");
+      else if (err.message === "QUOTA_EXHAUSTED") setInsightError("QUOTA_REACHED");
+      else setInsightError("GENERAL_ERROR");
     } finally {
       setIsLoadingInsights(false);
     }
   }, [stats.totalRevenue, stats.occupancyRate, stats.pendingOrdersCount, waiters.length, menuItems.length]);
-
-  const handleLogout = () => {
-    authService.logout();
-    setUser(null);
-    setHasHydrated(false);
-    toast("Session terminated", "info");
-  };
 
   const enterEditMode = () => {
     if (viewMode !== '3d') setViewMode('3d');
@@ -367,15 +388,6 @@ const App: React.FC = () => {
   };
 
   const renderContent = () => {
-    if (!hasHydrated && user) {
-      return (
-        <div className="h-full flex flex-col items-center justify-center space-y-4 bg-zinc-50 dark:bg-zinc-950">
-          <Loader2 size={48} className="text-indigo-600 animate-spin" />
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400">Loading User Environment...</p>
-        </div>
-      );
-    }
-
     switch (activeTab) {
       case 'dashboard':
         return (
@@ -445,7 +457,7 @@ const App: React.FC = () => {
     return (
       <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950 text-foreground overflow-hidden font-sans">
         <Toaster />
-        <Auth onAuthSuccess={setUser} />
+        <Auth onAuthSuccess={handleAuthSuccess} />
       </div>
     );
   }

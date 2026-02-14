@@ -3,6 +3,7 @@ import { MenuItem, CartItem, BusinessInsight } from "../types";
 
 const getAIClient = () => {
   const apiKey = process.env.API_KEY;
+  // Standard check for missing or placeholder keys
   if (!apiKey || apiKey === "API_KEY" || apiKey === "undefined") {
     return null;
   }
@@ -11,7 +12,7 @@ const getAIClient = () => {
 
 export const geminiService = {
   /**
-   * Generates upselling suggestions based on the current cart.
+   * Generates upselling suggestions based on the current cart and user menu.
    */
   async getUpsellSuggestions(cartItems: CartItem[], menu: MenuItem[]): Promise<string[]> {
     if (cartItems.length === 0) return [];
@@ -37,14 +38,13 @@ export const geminiService = {
       const jsonStr = response.text?.trim() || '[]';
       return JSON.parse(jsonStr);
     } catch (error) {
-      console.error("Upsell AI Error:", error);
+      console.error("Upsell AI Node Error:", error);
       return [];
     }
   },
 
   /**
-   * Generates business insights based on REAL user metrics.
-   * No longer falls back to mock data if the API fails.
+   * Generates business insights based on REAL user metrics provided by the app.
    */
   async getBusinessInsights(salesData: any): Promise<BusinessInsight[]> {
     const ai = getAIClient();
@@ -55,15 +55,15 @@ export const geminiService = {
     try {
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `Act as a world-class restaurant consultant. Analyze these EXACT current business metrics for THIS specific user: 
-        Total Revenue: ${salesData.revenue}
-        Occupancy Rate: ${salesData.occupancy}%
-        Staff Count: ${salesData.staff}
-        Menu Assets: ${salesData.menuItems}
-        Pending Orders: ${salesData.pendingOrders}
+        contents: `Act as a world-class restaurant strategy consultant. Analyze these specific business metrics for the current operator: 
+        Current Revenue: ₹${salesData.revenue}
+        Active Occupancy: ${salesData.occupancy}%
+        Staff on Duty: ${salesData.staff} members
+        Menu Assets Registered: ${salesData.menuItems}
+        Active Pending Orders: ${salesData.pendingOrders}
         
-        Generate 6-8 deep, actionable business insights tailored strictly to these numbers.
-        Return in JSON format with title, value, trend, description, category, and impact.`,
+        Task: Generate 6-8 deep, actionable business insights. Insights must be logical deductions based on the data above.
+        Format: Return strictly as a JSON array of objects with: title, value, trend (up/down/neutral), description, category (Revenue/Operations/Menu/Customer), and impact (High/Medium/Low).`,
         config: {
           responseMimeType: "application/json",
           responseSchema: {
@@ -86,6 +86,7 @@ export const geminiService = {
       const jsonStr = response.text?.trim() || '[]';
       return JSON.parse(jsonStr);
     } catch (error: any) {
+      // Explicitly catch rate limit errors to trigger the "Quota Exhausted" UI
       if (error?.status === 429 || error?.message?.includes("429") || error?.message?.includes("quota")) {
         throw new Error("QUOTA_EXHAUSTED");
       }
