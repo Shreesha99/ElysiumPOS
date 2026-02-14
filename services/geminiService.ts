@@ -1,20 +1,26 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { MenuItem, CartItem, BusinessInsight } from "../types";
 
+/**
+ * Deterministically retrieves the Gemini AI client.
+ * Relies on the globally injected process.env.API_KEY.
+ */
 const getAIClient = () => {
   const apiKey = process.env.API_KEY;
   
-  // If API key is missing or is just the default placeholder string
-  if (!apiKey || apiKey === "API_KEY" || apiKey === "undefined" || apiKey.trim() === "") {
-    console.error("Gemini Service: No valid API key found in environment.");
+  // Strict check for valid API key strings
+  if (!apiKey || 
+      apiKey === "API_KEY" || 
+      apiKey === "undefined" || 
+      apiKey.trim() === "" || 
+      apiKey.includes("YOUR_API_KEY")) {
     return null;
   }
   
   try {
     return new GoogleGenAI({ apiKey });
   } catch (e) {
-    console.error("Gemini Service: Failed to initialize client.", e);
+    console.error("Gemini Service: Initialization failure", e);
     return null;
   }
 };
@@ -57,6 +63,8 @@ export const geminiService = {
    */
   async getBusinessInsights(salesData: any): Promise<BusinessInsight[]> {
     const ai = getAIClient();
+    
+    // If client is null, we are missing the key
     if (!ai) {
       throw new Error("API_KEY_MISSING");
     }
@@ -95,7 +103,7 @@ export const geminiService = {
       const jsonStr = response.text?.trim() || '[]';
       return JSON.parse(jsonStr);
     } catch (error: any) {
-      // Explicitly catch rate limit errors to trigger the "Quota Exhausted" UI
+      // Explicitly handle rate limiting
       if (error?.status === 429 || error?.message?.includes("429") || error?.message?.includes("quota")) {
         throw new Error("QUOTA_EXHAUSTED");
       }

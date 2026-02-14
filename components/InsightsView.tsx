@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -44,9 +43,9 @@ const InsightsView: React.FC<InsightsViewProps> = ({ insights, fetchAIInsights, 
     }
   };
 
-  // Determine if we should show the primary action in the header
-  const showHeaderAction = insights.length > 0 && !error;
-
+  // Logic to determine which screen to show
+  const hasInsights = insights.length > 0;
+  
   return (
     <div className="h-full flex flex-col bg-zinc-50 dark:bg-zinc-950 overflow-hidden font-sans">
       {/* Premium Strategy Header */}
@@ -57,21 +56,23 @@ const InsightsView: React.FC<InsightsViewProps> = ({ insights, fetchAIInsights, 
               <div className="p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg text-indigo-600">
                 <BrainCircuit size={24} />
               </div>
-              <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tighter dark:text-white">AI Strategy Hub</h1>
+              <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tighter dark:text-white truncate">AI Strategy Hub</h1>
             </div>
-            <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px] pl-1">Neural-processed business intelligence nodes.</p>
+            <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px] pl-1 truncate">Unified Neural Intelligence & Analytics</p>
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Status Indicators */}
             <div className="hidden sm:flex flex-col items-end mr-4">
               <p className="text-[9px] font-black uppercase text-zinc-400 tracking-widest">Core Status</p>
-              <p className={`text-xs font-black flex items-center gap-2 ${error ? 'text-rose-500' : insights.length > 0 ? 'text-emerald-500' : 'text-zinc-400'}`}>
-                {error ? <AlertTriangle size={14} /> : insights.length > 0 ? <ShieldCheck size={14} /> : <div className="w-2 h-2 rounded-full bg-zinc-300" />} 
-                {error ? 'Interrupted' : insights.length > 0 ? 'Synchronized' : 'Ready'}
+              <p className={`text-xs font-black flex items-center gap-2 ${error ? 'text-rose-500' : hasInsights ? 'text-emerald-500' : 'text-zinc-400'}`}>
+                {error ? <AlertTriangle size={14} /> : hasInsights ? <ShieldCheck size={14} /> : <div className="w-1.5 h-1.5 rounded-full bg-zinc-300" />} 
+                {error ? 'Interrupted' : hasInsights ? 'Synchronized' : 'Ready to Analyze'}
               </p>
             </div>
             
-            {showHeaderAction && (
+            {/* Context-Aware Header Button: Only shows when insights are already present and there's no error */}
+            {hasInsights && !error && (
               <button 
                 onClick={fetchAIInsights} 
                 disabled={isLoading}
@@ -87,9 +88,10 @@ const InsightsView: React.FC<InsightsViewProps> = ({ insights, fetchAIInsights, 
 
       {/* Main Insights Canvas */}
       <div className="flex-1 overflow-y-auto px-6 sm:px-12 py-10 no-scrollbar pb-32 lg:pb-12">
-        <div className="max-w-[1600px] mx-auto">
+        <div className="max-w-[1600px] mx-auto h-full">
           <AnimatePresence mode="wait">
             {isLoading ? (
+              /* Loading State */
               <motion.div 
                 key="loader"
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -98,21 +100,22 @@ const InsightsView: React.FC<InsightsViewProps> = ({ insights, fetchAIInsights, 
                 <div className="relative">
                   <motion.div 
                     animate={{ rotate: 360 }}
-                    transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                    transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
                     className="w-40 h-40 border-t-4 border-indigo-600 rounded-full opacity-20"
                   />
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }} className="text-indigo-600">
+                    <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 1.5, repeat: Infinity }} className="text-indigo-600">
                       <Cpu size={48} />
                     </motion.div>
                   </div>
                 </div>
                 <div className="text-center space-y-4 max-w-md">
-                   <h3 className="text-xl font-black uppercase tracking-widest animate-pulse">Synthesizing Core Data...</h3>
-                   <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.2em] leading-relaxed">Processing enterprise telemetry for your specific business node.</p>
+                   <h3 className="text-xl font-black uppercase tracking-widest animate-pulse">Synthesizing telemetry...</h3>
+                   <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.2em] leading-relaxed">The neural engine is processing your business node data.</p>
                 </div>
               </motion.div>
             ) : error === "QUOTA_REACHED" ? (
+              /* Quota/Rate Limit Error */
               <motion.div 
                 key="quota"
                 initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
@@ -122,15 +125,16 @@ const InsightsView: React.FC<InsightsViewProps> = ({ insights, fetchAIInsights, 
                   <Lock size={80} className="text-rose-500 opacity-20" />
                 </div>
                 <div className="text-center space-y-4 max-w-lg mx-auto px-6">
-                   <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tighter">Quota Limit Reached</h2>
+                   <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tighter">Rate Limit Exhausted</h2>
                    <p className="text-xs font-bold uppercase tracking-widest leading-relaxed text-zinc-500">
-                     Your current Gemini API key has exceeded its permitted request volume. 
-                     Please check your billing plan or provide a high-tier enterprise key.
+                     Your API key has reached its volume limit for the current cycle. 
+                     Please wait a few moments or upgrade your project quota.
                    </p>
                 </div>
-                <button onClick={fetchAIInsights} className="bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 px-12 py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl">Retry Connection</button>
+                <button onClick={fetchAIInsights} className="bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 px-12 py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl">Retry Sync</button>
               </motion.div>
             ) : error === "KEY_MISSING" ? (
+              /* Missing Key Error */
               <motion.div 
                 key="key_missing"
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }}
@@ -140,16 +144,20 @@ const InsightsView: React.FC<InsightsViewProps> = ({ insights, fetchAIInsights, 
                   <AlertTriangle size={80} className="text-amber-500 opacity-20" />
                 </div>
                 <div className="text-center space-y-4">
-                  <p className="text-2xl font-black uppercase tracking-tighter">API Key Configuration Error</p>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 max-w-sm mx-auto">The strategy engine cannot authenticate. Please ensure API_KEY is set in your environment variables.</p>
+                  <h2 className="text-2xl font-black uppercase tracking-tighter">API Context Missing</h2>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 max-w-sm mx-auto leading-relaxed">
+                    The strategy hub cannot detect your Gemini API key in the environment. 
+                    Ensure API_KEY is correctly set in your .env or platform variables.
+                  </p>
                 </div>
-                <button onClick={fetchAIInsights} className="bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 px-12 py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl">Re-check Configuration</button>
+                <button onClick={fetchAIInsights} className="bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 px-12 py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl">Re-validate Environment</button>
               </motion.div>
-            ) : insights.length > 0 ? (
+            ) : hasInsights ? (
+              /* Success: Grid of Insights */
               <motion.div 
                 key="grid"
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8"
+                className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 pb-12"
               >
                 {insights.map((s, i) => (
                   <motion.div 
@@ -168,12 +176,13 @@ const InsightsView: React.FC<InsightsViewProps> = ({ insights, fetchAIInsights, 
                     <h2 className="text-4xl font-black dark:text-white mb-6 tracking-tighter leading-tight">{s.value}</h2>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed font-bold uppercase tracking-wide opacity-80 mb-8 flex-1">{s.description}</p>
                     <div className="pt-6 border-t border-zinc-50 dark:border-zinc-800 mt-auto">
-                       <button className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-indigo-600 hover:gap-3 transition-all">Apply Strategy <ArrowUpRight size={14} /></button>
+                       <button className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-indigo-600 hover:gap-3 transition-all">Execute Strategy <ArrowUpRight size={14} /></button>
                     </div>
                   </motion.div>
                 ))}
               </motion.div>
             ) : (
+              /* Dormant State: Initial Action Button */
               <motion.div 
                 key="dormant"
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }}
@@ -182,25 +191,32 @@ const InsightsView: React.FC<InsightsViewProps> = ({ insights, fetchAIInsights, 
                  <div className="p-16 rounded-[4rem] bg-zinc-50 dark:bg-zinc-900/50 border-2 border-dashed border-zinc-200 dark:border-zinc-800">
                     <Sparkles size={80} className="opacity-10" />
                  </div>
-                 <div className="text-center space-y-2">
-                    <p className="text-2xl font-black uppercase tracking-[0.3em]">AI Engine Dormant</p>
-                    <p className="text-xs font-bold uppercase tracking-widest opacity-40">Telemetry data ready for strategic synthesis.</p>
+                 <div className="text-center space-y-2 px-6">
+                    <p className="text-2xl font-black uppercase tracking-[0.3em]">Strategy Core Ready</p>
+                    <p className="text-xs font-bold uppercase tracking-widest opacity-40">Telemetry streams from your business node are ready for synthesis.</p>
                  </div>
-                 <button onClick={fetchAIInsights} className="bg-indigo-600 text-white px-12 py-5 rounded-[2rem] text-[10px] font-black uppercase tracking-[0.3em] shadow-xl hover:bg-indigo-700 transition-all active:scale-95">Initiate AI Analysis</button>
+                 <button 
+                  onClick={fetchAIInsights} 
+                  className="bg-indigo-600 text-white px-12 py-5 rounded-[2rem] text-[10px] font-black uppercase tracking-[0.3em] shadow-xl hover:bg-indigo-700 transition-all active:scale-95"
+                 >
+                   Initiate Strategy Analysis
+                 </button>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
       </div>
 
+      {/* Futuristic Status Footer */}
       <footer className="hidden lg:flex px-12 py-4 border-t border-zinc-100 dark:border-zinc-900 bg-white dark:bg-zinc-950 justify-between items-center text-[8px] font-black uppercase tracking-[0.3em] text-zinc-400">
-         <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1.5"><Zap size={10} className="text-indigo-500" /> GPU Acceleration: ON</span>
-            <span className="flex items-center gap-1.5"><BarChart4 size={10} className="text-indigo-500" /> Neural Core: Activated</span>
+         <div className="flex items-center gap-6">
+            <span className="flex items-center gap-1.5"><Zap size={10} className="text-indigo-500" /> Neural Processing: Active</span>
+            <span className="flex items-center gap-1.5"><BarChart4 size={10} className="text-indigo-500" /> Logic Node: Gemini-3-Flash</span>
+            <span className="flex items-center gap-1.5"><Cpu size={10} className="text-indigo-500" /> Environment: Synchronized</span>
          </div>
          <div className="flex items-center gap-2">
-            <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${error ? 'bg-rose-500' : insights.length > 0 ? 'bg-emerald-500' : 'bg-zinc-300'}`} />
-            System {error ? 'Degraded' : 'Nominal'}
+            <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${error ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]' : hasInsights ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-zinc-300'}`} />
+            Analysis Engine: {error ? 'Interrupted' : hasInsights ? 'Online' : 'Dormant'}
          </div>
       </footer>
     </div>
