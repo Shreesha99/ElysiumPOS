@@ -11,15 +11,18 @@ import {
   ChevronRight,
   UserCheck,
   MoreHorizontal,
+  HelpingHand,
+  LifeBuoy,
+  CircleHelp,
 } from "lucide-react";
-import { User } from "../services/authService";
+import { AppUser } from "../services/authService";
 
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   darkMode: boolean;
   toggleDarkMode: () => void;
-  user: User | null;
+  user: AppUser | null;
   onLogout: () => void;
 }
 
@@ -38,6 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: "waiters", label: "Staff", icon: UserCheck },
     { id: "inventory", label: "Assets", icon: Database },
     { id: "insights", label: "AI Strategy", icon: Sparkles },
+    { id: "support", label: "Customer Support", icon: CircleHelp },
   ];
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 

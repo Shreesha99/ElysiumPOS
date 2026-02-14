@@ -29,6 +29,7 @@ import POSView from "./components/POSView";
 import StaffView from "./components/StaffView/StaffView";
 import InventoryView from "./components/InventoryView/InventoryView";
 import InsightsView from "./components/InsightsView";
+import SupportView from "./components/SupportView";
 
 const App: React.FC = () => {
   const [user, setUser] = useState<AppUser | null>(null);
@@ -700,6 +701,8 @@ const App: React.FC = () => {
             error={insightError}
           />
         );
+      case "support":
+        return <SupportView />;
       default:
         return (
           <div className="p-10 text-zinc-500 uppercase tracking-widest text-xs font-bold">
