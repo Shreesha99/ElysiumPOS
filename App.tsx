@@ -129,8 +129,12 @@ const App: React.FC = () => {
     try {
       const data = await geminiService.getBusinessInsights({ revenue: stats.totalRevenue, occupancy: stats.occupancyRate, staff: waiters.length, menuItems: menuItems.length });
       setInsights(data);
-    } catch (err) {
-      toast("AI strategy node error", "error");
+    } catch (err: any) {
+      if (err.message === "API_KEY_MISSING") {
+        toast("Missing API Key. Check your environment configuration.", "error");
+      } else {
+        toast("AI strategy node error. Check network connection.", "error");
+      }
     } finally {
       setIsLoadingInsights(false);
     }

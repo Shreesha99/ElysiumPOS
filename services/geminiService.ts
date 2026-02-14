@@ -1,6 +1,15 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { MenuItem, CartItem, BusinessInsight } from "../types";
 
+const getAIClient = () => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey || apiKey === "API_KEY" || apiKey === "undefined") {
+    console.warn("Gemini API Key is missing. Please set the API_KEY environment variable.");
+    return null;
+  }
+  return new GoogleGenAI({ apiKey });
+};
+
 export const geminiService = {
   /**
    * Generates upselling suggestions based on the current cart.
@@ -8,8 +17,8 @@ export const geminiService = {
   async getUpsellSuggestions(cartItems: CartItem[], menu: MenuItem[]): Promise<string[]> {
     if (cartItems.length === 0) return [];
     
-    // Create instance inside the method to avoid top-level "missing API key" errors during module load
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = getAIClient();
+    if (!ai) return [];
     
     const cartDesc = cartItems.map(i => `${i.name} (Qty: ${i.quantity})`).join(', ');
     const menuDesc = menu.map(m => m.name).join(', ');
@@ -38,7 +47,10 @@ export const geminiService = {
    * Generates business insights based on simulated sales data.
    */
   async getBusinessInsights(salesData: any): Promise<BusinessInsight[]> {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = getAIClient();
+    if (!ai) {
+      throw new Error("API_KEY_MISSING");
+    }
 
     try {
       const response = await ai.models.generateContent({
@@ -75,7 +87,7 @@ export const geminiService = {
       return JSON.parse(jsonStr);
     } catch (error) {
       console.error("Failed to get business insights:", error);
-      return [];
+      throw error;
     }
   }
 };
