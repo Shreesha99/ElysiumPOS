@@ -36,7 +36,7 @@ const App: React.FC = () => {
   const [darkMode, setDarkMode] = useState(() => safeGetItem('elysium_theme', 'light') === 'dark');
   const [activeCategory, setActiveCategory] = useState<Category>('Starters');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
-  const [viewMode, setViewMode] = useState<'2d' | '3d'>('3d');
+  const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
   
   const [menuItems, setMenuItems] = useState<MenuItem[]>(() => JSON.parse(safeGetItem('elysium_menu', JSON.stringify(INITIAL_MENU_ITEMS))));
   const [floors, setFloors] = useState<Floor[]>(() => JSON.parse(safeGetItem('elysium_floors', JSON.stringify(INITIAL_FLOORS))));
@@ -84,7 +84,11 @@ const App: React.FC = () => {
   }, [orders, tables]);
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    const handleResize = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+      if (mobile && viewMode === '3d') setViewMode('2d');
+    };
     window.addEventListener('resize', handleResize);
     const interval = setInterval(() => {
       setLiveTraffic(prev => Math.max(10, prev + (Math.random() > 0.5 ? 2 : -2)));
@@ -93,7 +97,7 @@ const App: React.FC = () => {
       window.removeEventListener('resize', handleResize);
       clearInterval(interval);
     };
-  }, []);
+  }, [viewMode]);
 
   useEffect(() => {
     safeSetItem('elysium_menu', JSON.stringify(menuItems));
