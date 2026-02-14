@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import Auth from './components/Auth';
@@ -6,6 +7,7 @@ import { MenuItem, Category, BusinessInsight, Table, Waiter, Order, Floor, CartI
 import { INITIAL_MENU_ITEMS, CATEGORIES, INITIAL_TABLES, INITIAL_WAITERS, INITIAL_FLOORS } from './constants';
 import { geminiService } from './services/geminiService';
 import { authService, User } from './services/authService';
+import { Loader2 } from 'lucide-react';
 
 // View Components
 import DashboardView from './components/DashboardView';
@@ -15,33 +17,21 @@ import StaffView from './components/StaffView';
 import InventoryView from './components/InventoryView';
 import InsightsView from './components/InsightsView';
 
-const safeGetItem = (key: string, defaultValue: string) => {
-  try {
-    return localStorage.getItem(key) || defaultValue;
-  } catch (e) {
-    return defaultValue;
-  }
-};
-
-const safeSetItem = (key: string, value: string) => {
-  try {
-    localStorage.setItem(key, value);
-  } catch (e) {}
-};
-
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(authService.getCurrentUser());
   const [activeTab, setActiveTab] = useState('pos');
-  const [darkMode, setDarkMode] = useState(() => safeGetItem('elysium_theme', 'light') === 'dark');
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('elysium_theme') === 'dark');
   const [activeCategory, setActiveCategory] = useState<Category>('Starters');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
-  
-  const [menuItems, setMenuItems] = useState<MenuItem[]>(() => JSON.parse(safeGetItem('elysium_menu', JSON.stringify(INITIAL_MENU_ITEMS))));
-  const [floors, setFloors] = useState<Floor[]>(() => JSON.parse(safeGetItem('elysium_floors', JSON.stringify(INITIAL_FLOORS))));
-  const [tables, setTables] = useState<Table[]>(() => JSON.parse(safeGetItem('elysium_tables', JSON.stringify(INITIAL_TABLES))));
-  const [waiters, setWaiters] = useState<Waiter[]>(() => JSON.parse(safeGetItem('elysium_waiters', JSON.stringify(INITIAL_WAITERS))));
-  const [orders, setOrders] = useState<Order[]>(() => JSON.parse(safeGetItem('elysium_orders', '[]')));
+  const [isInitializing, setIsInitializing] = useState(false);
+
+  // User-scoped data states
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [floors, setFloors] = useState<Floor[]>([]);
+  const [tables, setTables] = useState<Table[]>([]);
+  const [waiters, setWaiters] = useState<Waiter[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
 
   const [isEditMode, setIsEditMode] = useState(false);
   const [draftTables, setDraftTables] = useState<Table[]>([]);
@@ -50,7 +40,7 @@ const App: React.FC = () => {
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
-  const [activeFloorId, setActiveFloorId] = useState<string>(() => floors[0]?.id || 'f1');
+  const [activeFloorId, setActiveFloorId] = useState<string>('');
   const [orderType, setOrderType] = useState<OrderType>('Dining');
 
   const [mapRotation, setMapRotation] = useState(-20);
@@ -63,6 +53,63 @@ const App: React.FC = () => {
 
   const [liveTraffic, setLiveTraffic] = useState(Math.floor(Math.random() * 50) + 20);
 
+  // Helper for user-scoped storage
+  const getUserKey = (key: string) => user ? `elysium_${user.id}_${key}` : null;
+
+  const saveUserData = useCallback(() => {
+    if (!user) return;
+    localStorage.setItem(getUserKey('menu')!, JSON.stringify(menuItems));
+    localStorage.setItem(getUserKey('floors')!, JSON.stringify(floors));
+    localStorage.setItem(getUserKey('tables')!, JSON.stringify(tables));
+    localStorage.setItem(getUserKey('waiters')!, JSON.stringify(waiters));
+    localStorage.setItem(getUserKey('orders')!, JSON.stringify(orders));
+  }, [user, menuItems, floors, tables, waiters, orders]);
+
+  // Sync data whenever it changes
+  useEffect(() => {
+    if (user && !isInitializing) {
+      saveUserData();
+    }
+  }, [saveUserData, isInitializing]);
+
+  // Load user data on user change
+  useEffect(() => {
+    if (user) {
+      setIsInitializing(true);
+      const load = () => {
+        const m = localStorage.getItem(getUserKey('menu')!);
+        const f = localStorage.getItem(getUserKey('floors')!);
+        const t = localStorage.getItem(getUserKey('tables')!);
+        const w = localStorage.getItem(getUserKey('waiters')!);
+        const o = localStorage.getItem(getUserKey('orders')!);
+
+        setMenuItems(m ? JSON.parse(m) : INITIAL_MENU_ITEMS);
+        const loadedFloors = f ? JSON.parse(f) : INITIAL_FLOORS;
+        setFloors(loadedFloors);
+        setTables(t ? JSON.parse(t) : INITIAL_TABLES);
+        setWaiters(w ? JSON.parse(w) : INITIAL_WAITERS);
+        setOrders(o ? JSON.parse(o) : []);
+        
+        if (loadedFloors.length > 0) setActiveFloorId(loadedFloors[0].id);
+        
+        setIsInitializing(false);
+      };
+      
+      // Artificial delay for smooth environment transition
+      const timer = setTimeout(load, 800);
+      return () => clearTimeout(timer);
+    } else {
+      // Clear state on logout
+      setMenuItems([]);
+      setFloors([]);
+      setTables([]);
+      setWaiters([]);
+      setOrders([]);
+      setCart([]);
+      setSelectedTableId(null);
+    }
+  }, [user]);
+
   const activeTables = isEditMode ? draftTables : tables;
   const activeFloors = isEditMode ? draftFloors : floors;
   
@@ -73,7 +120,7 @@ const App: React.FC = () => {
     const pendingRevenue = orders.filter(o => o.status !== 'Paid').reduce((acc, o) => acc + o.total, 0);
     const avgOrderValue = orders.length > 0 ? totalRevenue / orders.length : 0;
     const occupiedTables = tables.filter(t => t.status === 'Occupied').length;
-    const occupancyRate = (occupiedTables / tables.length) * 100 || 0;
+    const occupancyRate = (occupiedTables / (tables.length || 1)) * 100;
     const hourlySales = Array.from({ length: 12 }, (_, i) => ({
       hour: `${i + 9}:00`,
       value: Math.floor(Math.random() * 5000) + 1000
@@ -98,22 +145,14 @@ const App: React.FC = () => {
   }, [viewMode]);
 
   useEffect(() => {
-    safeSetItem('elysium_menu', JSON.stringify(menuItems));
-    safeSetItem('elysium_floors', JSON.stringify(floors));
-    safeSetItem('elysium_tables', JSON.stringify(tables));
-    safeSetItem('elysium_waiters', JSON.stringify(waiters));
-    safeSetItem('elysium_orders', JSON.stringify(orders));
-  }, [menuItems, floors, tables, waiters, orders]);
-
-  useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode);
-    safeSetItem('elysium_theme', darkMode ? 'dark' : 'light');
+    localStorage.setItem('elysium_theme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
 
   // Handle upselling logic when cart changes
   useEffect(() => {
     const timer = setTimeout(async () => {
-      if (cart.length > 0) {
+      if (cart.length > 0 && menuItems.length > 0) {
         const suggestions = await geminiService.getUpsellSuggestions(cart, menuItems);
         setUpsellSuggestions(suggestions);
       } else {
@@ -147,6 +186,7 @@ const App: React.FC = () => {
   const handleLogout = () => {
     authService.logout();
     setUser(null);
+    toast("Session terminated", "info");
   };
 
   const enterEditMode = () => {
@@ -230,7 +270,6 @@ const App: React.FC = () => {
         toast(`Table ${selectedTable?.number} session started`, "success");
       }
     } else {
-        // Takeaway
         const newOrder: Order = {
           id: `tkw-${Date.now()}`,
           orderType: 'Takeaway',
@@ -321,7 +360,6 @@ const App: React.FC = () => {
     toast("Asset removed from registry", "info");
   };
 
-  // Staff Management Handlers
   const addWaiter = (waiter: Waiter) => {
     setWaiters(prev => [...prev, waiter]);
     toast(`Staff ${waiter.name} added`, "success");
@@ -337,6 +375,15 @@ const App: React.FC = () => {
   };
 
   const renderContent = () => {
+    if (isInitializing) {
+      return (
+        <div className="h-full flex flex-col items-center justify-center space-y-4 bg-zinc-50 dark:bg-zinc-950">
+          <Loader2 size={48} className="text-indigo-600 animate-spin" />
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400">Syncing user environment...</p>
+        </div>
+      );
+    }
+
     switch (activeTab) {
       case 'dashboard':
         return (
