@@ -21,7 +21,7 @@ import {
   INITIAL_FLOORS,
 } from "./constants";
 import { geminiService } from "./services/geminiService";
-import { authService, User } from "./services/authService";
+import { authService, AppUser } from "./services/authService";
 
 // View Components
 import DashboardView from "./components/DashboardView";
@@ -32,7 +32,9 @@ import InventoryView from "./components/InventoryView/InventoryView";
 import InsightsView from "./components/InsightsView";
 
 const App: React.FC = () => {
-  const [user, setUser] = useState<User | null>(authService.getCurrentUser());
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
   const [activeTab, setActiveTab] = useState("pos");
   const [darkMode, setDarkMode] = useState(
     () => localStorage.getItem("elysium_theme") === "dark"
@@ -42,7 +44,7 @@ const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<"2d" | "3d">("2d");
 
   // Helper to generate storage keys scoped to the current user
-  const getUserKey = (key: string, u: User | null = user) =>
+  const getUserKey = (key: string, u: AppUser | null = user) =>
     u ? `elysium_${u.id}_${key}` : null;
 
   // ATOMIC INITIALIZATION: We load data immediately in the state initializer
@@ -77,6 +79,15 @@ const App: React.FC = () => {
   const [liveTraffic, setLiveTraffic] = useState(
     Math.floor(Math.random() * 50) + 20
   );
+
+  useEffect(() => {
+    const unsubscribe = authService.subscribe((u) => {
+      setUser(u);
+      setAuthLoading(false);
+    });
+
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -581,6 +592,18 @@ const App: React.FC = () => {
     }
   };
 
+  // 1️⃣ Wait for Firebase to restore session FIRST
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-zinc-950">
+        <div className="text-zinc-400 text-sm font-bold uppercase tracking-widest">
+          Restoring session...
+        </div>
+      </div>
+    );
+  }
+
+  // 2️⃣ After loading finished, decide auth vs app
   if (!user) {
     return (
       <div className="flex min-h-[100dvh] w-full bg-zinc-50 dark:bg-zinc-950 text-foreground font-sans">

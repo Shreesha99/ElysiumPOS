@@ -14,7 +14,7 @@ import { auth, db } from "./firebase";
    USER TYPE (this matches what App.tsx expects)
 ====================================================== */
 
-export interface User {
+export interface AppUser {
   id: string;
   email: string;
   name: string;
@@ -26,7 +26,7 @@ export interface User {
    INTERNAL MAPPER
 ====================================================== */
 
-const mapUser = async (firebaseUser: FirebaseUser): Promise<User> => {
+const mapUser = async (firebaseUser: FirebaseUser): Promise<AppUser> => {
   const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
 
   if (!userDoc.exists()) {
@@ -50,7 +50,7 @@ const mapUser = async (firebaseUser: FirebaseUser): Promise<User> => {
 
 export const authService = {
   /* ---------- LOGIN ---------- */
-  login: async (email: string, password: string): Promise<User> => {
+  login: async (email: string, password: string): Promise<AppUser> => {
     const cred = await signInWithEmailAndPassword(auth, email, password);
     return await mapUser(cred.user);
   },
@@ -60,7 +60,7 @@ export const authService = {
     name: string,
     email: string,
     password: string
-  ): Promise<User> => {
+  ): Promise<AppUser> => {
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
       const uid = cred.user.uid;
@@ -111,7 +111,7 @@ export const authService = {
   },
 
   /* ---------- SYNC CURRENT USER (minimal) ---------- */
-  getCurrentUser: (): User | null => {
+  getCurrentUser: (): AppUser | null => {
     const firebaseUser = auth.currentUser;
     if (!firebaseUser) return null;
 
@@ -125,7 +125,7 @@ export const authService = {
   },
 
   /* ---------- REAL AUTH LISTENER ---------- */
-  subscribe: (callback: (user: User | null) => void) => {
+  subscribe: (callback: (user: AppUser | null) => void) => {
     return onAuthStateChanged(auth, async (firebaseUser) => {
       if (!firebaseUser) {
         callback(null);
