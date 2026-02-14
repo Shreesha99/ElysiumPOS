@@ -68,9 +68,8 @@ const App: React.FC = () => {
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
-  const [activeFloorId, setActiveFloorId] = useState<string>(
-    () => floors[0]?.id || ""
-  );
+  const [activeFloorId, setActiveFloorId] = useState<string>("");
+
   const [orderType, setOrderType] = useState<OrderType>("Dining");
 
   const [mapRotation, setMapRotation] = useState(-20);
@@ -488,11 +487,46 @@ const App: React.FC = () => {
   };
 
   const addNewTable = () => {
-    if (!isEditMode || !activeFloorId) return;
+    if (!isEditMode) return;
+
+    let floorIdToUse = activeFloorId;
+    let updatedFloors = [...draftFloors];
+
+    // 1️⃣ If no floors exist at all → auto create one
+    if (updatedFloors.length === 0) {
+      const newFloor: Floor = {
+        id: `temp-${Date.now()}`,
+        name: "Main Floor",
+        width: 20,
+        height: 20,
+      };
+
+      updatedFloors = [...updatedFloors, newFloor];
+      setDraftFloors(updatedFloors);
+      setActiveFloorId(newFloor.id);
+
+      floorIdToUse = newFloor.id;
+    }
+
+    // 2️⃣ If floors exist but none selected → select first
+    if (!floorIdToUse && updatedFloors.length > 0) {
+      floorIdToUse = updatedFloors[0].id;
+      setActiveFloorId(floorIdToUse);
+    }
+
+    if (!floorIdToUse) return;
+
+    // 3️⃣ Generate number per floor
+    const tablesOnFloor = draftTables.filter((t) => t.floorId === floorIdToUse);
+
+    const nextNumber =
+      tablesOnFloor.length > 0
+        ? Math.max(...tablesOnFloor.map((t) => t.number)) + 1
+        : 1;
 
     const newTable: Table = {
       id: `temp-${Date.now()}`,
-      number: draftTables.length + 1,
+      number: nextNumber,
       capacity: 4,
       status: "Available",
       x: 2,
@@ -500,13 +534,13 @@ const App: React.FC = () => {
       width: 3,
       height: 3,
       rotation: 0,
-      floorId: activeFloorId,
+      floorId: floorIdToUse,
     };
 
     const updatedTables = [...draftTables, newTable];
 
     setDraftTables(updatedTables);
-    pushToHistory(draftFloors, updatedTables);
+    pushToHistory(updatedFloors, updatedTables);
   };
 
   const deleteDraftTable = (id: string) => {
