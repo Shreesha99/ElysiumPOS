@@ -1,85 +1,143 @@
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  User as FirebaseUser,
+} from "firebase/auth";
+
+import { doc, getDoc, setDoc, collection, addDoc } from "firebase/firestore";
+
+import { auth, db } from "./firebase";
+
+/* ======================================================
+   USER TYPE (this matches what App.tsx expects)
+====================================================== */
 
 export interface User {
   id: string;
   email: string;
-  username: string;
   name: string;
-  role: 'admin' | 'staff';
+  role: "admin" | "staff";
+  restaurantId: string;
 }
 
-const USERS_KEY = 'elysium_users_v3';
-const CURRENT_USER_KEY = 'elysium_current_user_v3';
+/* ======================================================
+   INTERNAL MAPPER
+====================================================== */
+
+const mapUser = async (firebaseUser: FirebaseUser): Promise<User> => {
+  const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+
+  if (!userDoc.exists()) {
+    throw new Error("User profile not found");
+  }
+
+  const data = userDoc.data();
+
+  return {
+    id: firebaseUser.uid,
+    email: firebaseUser.email || "",
+    name: data.name,
+    role: data.role,
+    restaurantId: data.restaurantId,
+  };
+};
+
+/* ======================================================
+   AUTH SERVICE
+====================================================== */
 
 export const authService = {
+  /* ---------- LOGIN ---------- */
+  login: async (email: string, password: string): Promise<User> => {
+    const cred = await signInWithEmailAndPassword(auth, email, password);
+    return await mapUser(cred.user);
+  },
+
+  /* ---------- REGISTER ---------- */
+  register: async (
+    name: string,
+    email: string,
+    password: string
+  ): Promise<User> => {
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      const uid = cred.user.uid;
+
+      /* STEP 1: Create temporary user profile */
+      await setDoc(doc(db, "users", uid), {
+        name,
+        email,
+        role: "admin",
+        restaurantId: null,
+        createdAt: new Date(),
+      });
+
+      /* STEP 2: Create restaurant */
+      const restaurantRef = await addDoc(collection(db, "restaurants"), {
+        name: `${name}'s Restaurant`,
+        ownerId: uid,
+        createdAt: new Date(),
+      });
+
+      const restaurantId = restaurantRef.id;
+
+      /* STEP 3: Update user with restaurantId */
+      await setDoc(
+        doc(db, "users", uid),
+        {
+          restaurantId,
+        },
+        { merge: true }
+      );
+
+      return {
+        id: uid,
+        email,
+        name,
+        role: "admin",
+        restaurantId,
+      };
+    } catch (error) {
+      console.error("Registration failed:", error);
+      throw error;
+    }
+  },
+
+  /* ---------- LOGOUT ---------- */
+  logout: async () => {
+    await signOut(auth);
+  },
+
+  /* ---------- SYNC CURRENT USER (minimal) ---------- */
   getCurrentUser: (): User | null => {
-    try {
-      const saved = localStorage.getItem(CURRENT_USER_KEY);
-      return saved ? JSON.parse(saved) : null;
-    } catch (e) {
-      console.warn("Storage access denied. User session unavailable.");
-      return null;
-    }
-  },
+    const firebaseUser = auth.currentUser;
+    if (!firebaseUser) return null;
 
-  login: async (username: string, password: string): Promise<User> => {
-    // Artificial latency for premium feel
-    await new Promise(resolve => setTimeout(resolve, 1200));
-    
-    let users: User[] = [];
-    try {
-      users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-    } catch (e) {
-      console.warn("Storage access denied.");
-    }
-    
-    // In a real app, we'd check password hash
-    const user = users.find(u => u.username.toLowerCase() === username.toLowerCase());
-    
-    if (user) {
-      try {
-        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
-      } catch (e) {}
-      return user;
-    }
-    
-    throw new Error("Invalid username or access key. Please verify credentials.");
-  },
-
-  signup: async (name: string, email: string, username: string, password: string): Promise<User> => {
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    let users: User[] = [];
-    try {
-      users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
-    } catch (e) {}
-    
-    if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
-      throw new Error("This email is already registered in our node network.");
-    }
-
-    if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
-      throw new Error("This username is already claimed.");
-    }
-    
-    const newUser: User = { 
-      id: Math.random().toString(36).substring(2, 9), 
-      email: email.toLowerCase(), 
-      username: username.toLowerCase(),
-      name, 
-      role: 'admin' 
+    return {
+      id: firebaseUser.uid,
+      email: firebaseUser.email || "",
+      name: firebaseUser.displayName || "",
+      role: "admin",
+      restaurantId: "",
     };
-
-    const updatedUsers = [...users, newUser];
-    try {
-      localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
-      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(newUser));
-    } catch (e) {}
-    return newUser;
   },
 
-  logout: () => {
-    try {
-      localStorage.removeItem(CURRENT_USER_KEY);
-    } catch (e) {}
-  }
+  /* ---------- REAL AUTH LISTENER ---------- */
+  subscribe: (callback: (user: User | null) => void) => {
+    return onAuthStateChanged(auth, async (firebaseUser) => {
+      if (!firebaseUser) {
+        callback(null);
+        return;
+      }
+
+      try {
+        const user = await mapUser(firebaseUser);
+        callback(user);
+      } catch {
+        callback(null);
+      }
+    });
+  },
 };

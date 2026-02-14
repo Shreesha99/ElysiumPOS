@@ -47,40 +47,11 @@ const App: React.FC = () => {
 
   // ATOMIC INITIALIZATION: We load data immediately in the state initializer
   // to prevent race conditions during the first render.
-  const [menuItems, setMenuItems] = useState<MenuItem[]>(() => {
-    const u = authService.getCurrentUser();
-    if (!u) return [];
-    const saved = localStorage.getItem(`elysium_${u.id}_menu`);
-    return saved ? JSON.parse(saved) : INITIAL_MENU_ITEMS;
-  });
-
-  const [floors, setFloors] = useState<Floor[]>(() => {
-    const u = authService.getCurrentUser();
-    if (!u) return [];
-    const saved = localStorage.getItem(`elysium_${u.id}_floors`);
-    return saved ? JSON.parse(saved) : INITIAL_FLOORS;
-  });
-
-  const [tables, setTables] = useState<Table[]>(() => {
-    const u = authService.getCurrentUser();
-    if (!u) return [];
-    const saved = localStorage.getItem(`elysium_${u.id}_tables`);
-    return saved ? JSON.parse(saved) : INITIAL_TABLES;
-  });
-
-  const [waiters, setWaiters] = useState<Waiter[]>(() => {
-    const u = authService.getCurrentUser();
-    if (!u) return [];
-    const saved = localStorage.getItem(`elysium_${u.id}_waiters`);
-    return saved ? JSON.parse(saved) : INITIAL_WAITERS;
-  });
-
-  const [orders, setOrders] = useState<Order[]>(() => {
-    const u = authService.getCurrentUser();
-    if (!u) return [];
-    const saved = localStorage.getItem(`elysium_${u.id}_orders`);
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [floors, setFloors] = useState<Floor[]>([]);
+  const [tables, setTables] = useState<Table[]>([]);
+  const [waiters, setWaiters] = useState<Waiter[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
 
   const [isEditMode, setIsEditMode] = useState(false);
   const [draftTables, setDraftTables] = useState<Table[]>([]);
@@ -107,6 +78,21 @@ const App: React.FC = () => {
     Math.floor(Math.random() * 50) + 20
   );
 
+  useEffect(() => {
+    if (!user) return;
+
+    const load = <T,>(key: string, fallback: T): T => {
+      const raw = localStorage.getItem(`elysium_${user.id}_${key}`);
+      return raw ? JSON.parse(raw) : fallback;
+    };
+
+    setMenuItems(load("menu", INITIAL_MENU_ITEMS));
+    setFloors(load("floors", INITIAL_FLOORS));
+    setTables(load("tables", INITIAL_TABLES));
+    setWaiters(load("waiters", INITIAL_WAITERS));
+    setOrders(load("orders", []));
+  }, [user]);
+
   // Persistence: Save only when user is logged in
   useEffect(() => {
     if (user) {
@@ -117,24 +103,6 @@ const App: React.FC = () => {
       localStorage.setItem(getUserKey("orders")!, JSON.stringify(orders));
     }
   }, [user, menuItems, floors, tables, waiters, orders]);
-
-  // Handle cross-user segregation: Re-initialize state when user object changes (Login/Logout)
-  const handleAuthSuccess = (u: User) => {
-    setUser(u);
-    const m = localStorage.getItem(getUserKey("menu", u)!);
-    const f = localStorage.getItem(getUserKey("floors", u)!);
-    const t = localStorage.getItem(getUserKey("tables", u)!);
-    const w = localStorage.getItem(getUserKey("waiters", u)!);
-    const o = localStorage.getItem(getUserKey("orders", u)!);
-
-    setMenuItems(m ? JSON.parse(m) : INITIAL_MENU_ITEMS);
-    const loadedFloors = f ? JSON.parse(f) : INITIAL_FLOORS;
-    setFloors(loadedFloors);
-    setTables(t ? JSON.parse(t) : INITIAL_TABLES);
-    setWaiters(w ? JSON.parse(w) : INITIAL_WAITERS);
-    setOrders(o ? JSON.parse(o) : []);
-    if (loadedFloors.length > 0) setActiveFloorId(loadedFloors[0].id);
-  };
 
   const handleLogout = () => {
     authService.logout();
@@ -617,7 +585,7 @@ const App: React.FC = () => {
     return (
       <div className="flex min-h-[100dvh] w-full bg-zinc-50 dark:bg-zinc-950 text-foreground font-sans">
         <Toaster />
-        <Auth onAuthSuccess={handleAuthSuccess} />
+        <Auth onAuthSuccess={(u) => setUser(u)} />
       </div>
     );
   }
