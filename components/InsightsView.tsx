@@ -94,39 +94,37 @@ dark:bg-[radial-gradient(#ffffff_1px,transparent_1px)]
       />
 
       {/* Header */}
-      <header className="px-8 py-8 border-b border-zinc-200 dark:border-zinc-800 backdrop-blur-md bg-white/70 dark:bg-zinc-950/60">
-        <div className="max-w-[1400px] mx-auto flex items-center justify-between">
+      <header className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-40">
+        <div className="max-w-[1600px] mx-auto px-6 py-6 flex items-center justify-between">
+          {/* LEFT */}
           <div className="flex items-center gap-4">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
-              className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400"
-            >
-              <BrainCircuit size={22} />
-            </motion.div>
+            <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-500 dark:text-indigo-400">
+              <BrainCircuit size={20} />
+            </div>
 
             <div>
-              <h1 className="text-2xl font-semibold tracking-wide">
+              <h1 className="text-2xl sm:text-3xl font-semibold dark:text-white">
                 AI Strategy Hub
               </h1>
-              <p className="text-sm text-zinc-400">
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
                 Predictive neural synthesis engine
               </p>
             </div>
           </div>
 
-          {hasInsights && !error && (
+          {/* RIGHT ACTION */}
+          {(insights.length > 0 || error) && (
             <button
               onClick={fetchAIInsights}
               disabled={isLoading}
-              className="flex items-center gap-2 bg-indigo-600/90 hover:bg-indigo-600 px-5 py-2.5 rounded-lg text-sm transition disabled:opacity-50 shadow-lg shadow-indigo-500/20"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition disabled:opacity-50"
             >
               {isLoading ? (
                 <Loader2 size={16} className="animate-spin" />
               ) : (
                 <RefreshCcw size={16} />
               )}
-              Re Sync
+              Refresh
             </button>
           )}
         </div>
@@ -143,37 +141,75 @@ dark:bg-[radial-gradient(#ffffff_1px,transparent_1px)]
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="h-full flex flex-col items-center justify-center gap-10"
+                className="h-full flex flex-col items-center justify-center gap-12"
               >
-                <div className="relative w-40 h-40 flex items-center justify-center">
+                {/* Rotating Neural Core */}
+                <div className="relative w-48 h-48 flex items-center justify-center">
+                  {/* Outer rotating ring */}
                   <motion.div
                     animate={{ rotate: 360 }}
                     transition={{
-                      duration: 6,
+                      duration: 8,
                       repeat: Infinity,
                       ease: "linear",
                     }}
-                    className="absolute w-40 h-40 border border-indigo-400/40 dark:border-indigo-500/30 rounded-full"
+                    className="absolute w-48 h-48 rounded-full border border-indigo-500/30"
                   />
 
+                  {/* Inner counter rotation */}
                   <motion.div
-                    animate={{ scale: [1, 1.2, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className="absolute w-24 h-24 bg-indigo-500/20 blur-2xl rounded-full"
+                    animate={{ rotate: -360 }}
+                    transition={{
+                      duration: 5,
+                      repeat: Infinity,
+                      ease: "linear",
+                    }}
+                    className="absolute w-36 h-36 rounded-full border border-indigo-400/40"
                   />
 
+                  {/* Orbiting particles */}
                   <motion.div
-                    animate={{ scale: [1, 1.1, 1] }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                    className="relative text-indigo-400"
+                    animate={{ rotate: 360 }}
+                    transition={{
+                      duration: 4,
+                      repeat: Infinity,
+                      ease: "linear",
+                    }}
+                    className="absolute w-48 h-48"
                   >
-                    <BrainCircuit size={48} />
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 bg-indigo-500 rounded-full shadow-lg shadow-indigo-500/50" />
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2 h-2 bg-cyan-400 rounded-full shadow-lg shadow-cyan-400/50" />
                   </motion.div>
+
+                  {/* Core */}
+                  <div className="relative flex items-center justify-center">
+                    <motion.div
+                      animate={{ scale: [1, 1.15, 1] }}
+                      transition={{ duration: 1.8, repeat: Infinity }}
+                      className="absolute w-24 h-24 bg-indigo-500/20 blur-2xl rounded-full"
+                    />
+                    <BrainCircuit size={42} className="text-indigo-500" />
+                  </div>
                 </div>
 
-                <p className="text-zinc-400 text-sm tracking-wide">
-                  Neural engine processing enterprise telemetry...
-                </p>
+                {/* Loading Text */}
+                <div className="flex flex-col items-center gap-3">
+                  <p className="text-sm font-semibold tracking-wide text-zinc-600 dark:text-zinc-400">
+                    Running Neural Analysis
+                  </p>
+
+                  <div className="w-64 h-1 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                    <motion.div
+                      animate={{ x: ["-100%", "100%"] }}
+                      transition={{
+                        duration: 1.6,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                      }}
+                      className="w-1/2 h-full bg-indigo-500"
+                    />
+                  </div>
+                </div>
               </motion.div>
             )}
 

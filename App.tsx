@@ -13,15 +13,14 @@ import {
   CartItem,
   OrderType,
 } from "./types";
-import {
-  INITIAL_MENU_ITEMS,
-  CATEGORIES,
-  INITIAL_TABLES,
-  INITIAL_WAITERS,
-  INITIAL_FLOORS,
-} from "./constants";
+import { CATEGORIES } from "./constants";
 import { geminiService } from "./services/geminiService";
 import { authService, AppUser } from "./services/authService";
+import { staffService } from "./services/staffService";
+import { tableService } from "./services/tableService";
+import { floorService } from "./services/floorService";
+import { menuService } from "./services/menuService";
+import { orderService } from "./services/orderService";
 
 // View Components
 import DashboardView from "./components/DashboardView";
@@ -43,12 +42,6 @@ const App: React.FC = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [viewMode, setViewMode] = useState<"2d" | "3d">("2d");
 
-  // Helper to generate storage keys scoped to the current user
-  const getUserKey = (key: string, u: AppUser | null = user) =>
-    u ? `elysium_${u.id}_${key}` : null;
-
-  // ATOMIC INITIALIZATION: We load data immediately in the state initializer
-  // to prevent race conditions during the first render.
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [floors, setFloors] = useState<Floor[]>([]);
   const [tables, setTables] = useState<Table[]>([]);
@@ -59,6 +52,18 @@ const App: React.FC = () => {
   const [draftTables, setDraftTables] = useState<Table[]>([]);
   const [draftFloors, setDraftFloors] = useState<Floor[]>([]);
   const [editingFloorId, setEditingFloorId] = useState<string | null>(null);
+  const [isSavingLayout, setIsSavingLayout] = useState(false);
+
+  // ======================
+  // Spatial Editor History
+  // ======================
+  interface LayoutSnapshot {
+    floors: Floor[];
+    tables: Table[];
+  }
+
+  const [history, setHistory] = useState<LayoutSnapshot[]>([]);
+  const [historyIndex, setHistoryIndex] = useState<number>(-1);
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
@@ -92,28 +97,30 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!user) return;
 
-    const load = <T,>(key: string, fallback: T): T => {
-      const raw = localStorage.getItem(`elysium_${user.id}_${key}`);
-      return raw ? JSON.parse(raw) : fallback;
+    const loadRestaurantData = async () => {
+      const [staff, tables, floors, menu, orders] = await Promise.all([
+        staffService.getAll(),
+        tableService.getAll(),
+        floorService.getAll(),
+        menuService.getAll(),
+        orderService.getAll(),
+      ]);
+
+      setWaiters(staff);
+      setTables(tables);
+      setFloors(floors);
+      setMenuItems(menu);
+      setOrders(orders);
     };
 
-    setMenuItems(load("menu", INITIAL_MENU_ITEMS));
-    setFloors(load("floors", INITIAL_FLOORS));
-    setTables(load("tables", INITIAL_TABLES));
-    setWaiters(load("waiters", INITIAL_WAITERS));
-    setOrders(load("orders", []));
+    loadRestaurantData();
   }, [user]);
 
-  // Persistence: Save only when user is logged in
   useEffect(() => {
-    if (user) {
-      localStorage.setItem(getUserKey("menu")!, JSON.stringify(menuItems));
-      localStorage.setItem(getUserKey("floors")!, JSON.stringify(floors));
-      localStorage.setItem(getUserKey("tables")!, JSON.stringify(tables));
-      localStorage.setItem(getUserKey("waiters")!, JSON.stringify(waiters));
-      localStorage.setItem(getUserKey("orders")!, JSON.stringify(orders));
+    if (floors.length > 0 && !activeFloorId) {
+      setActiveFloorId(floors[0].id);
     }
-  }, [user, menuItems, floors, tables, waiters, orders]);
+  }, [floors]);
 
   const handleLogout = () => {
     authService.logout();
@@ -227,10 +234,34 @@ const App: React.FC = () => {
     menuItems.length,
   ]);
 
+  const pushToHistory = (floors: Floor[], tables: Table[]) => {
+    setHistory((prev) => {
+      const trimmed = prev.slice(0, historyIndex + 1);
+
+      const snapshot: LayoutSnapshot = {
+        floors: JSON.parse(JSON.stringify(floors)),
+        tables: JSON.parse(JSON.stringify(tables)),
+      };
+
+      const newHistory = [...trimmed, snapshot];
+      setHistoryIndex(newHistory.length - 1);
+
+      return newHistory;
+    });
+  };
+
   const enterEditMode = () => {
     if (viewMode !== "3d") setViewMode("3d");
-    setDraftTables([...tables]);
-    setDraftFloors([...floors]);
+
+    const floorCopy = JSON.parse(JSON.stringify(floors));
+    const tableCopy = JSON.parse(JSON.stringify(tables));
+
+    setDraftFloors(floorCopy);
+    setDraftTables(tableCopy);
+
+    setHistory([{ floors: floorCopy, tables: tableCopy }]);
+    setHistoryIndex(0);
+
     setIsEditMode(true);
     toast("Spatial editor active", "info");
   };
@@ -242,13 +273,66 @@ const App: React.FC = () => {
     toast("Changes discarded", "info");
   };
 
-  const saveEdit = () => {
-    setTables([...draftTables]);
-    setFloors([...draftFloors]);
-    setIsEditMode(false);
-    setSelectedTableId(null);
-    setEditingFloorId(null);
-    toast("Spatial map saved", "success");
+  const saveEdit = async () => {
+    try {
+      setIsSavingLayout(true);
+
+      for (const table of draftTables) {
+        if (table.id.startsWith("temp-")) {
+          await tableService.create({
+            number: table.number,
+            capacity: table.capacity,
+            status: table.status,
+            x: table.x,
+            y: table.y,
+            width: table.width,
+            height: table.height,
+            rotation: table.rotation || 0,
+            floorId: table.floorId,
+          });
+        } else {
+          await tableService.update(table.id, table);
+        }
+      }
+      // Delete removed floors
+      const removedFloors = floors.filter(
+        (f) => !draftFloors.some((df) => df.id === f.id)
+      );
+
+      for (const floor of removedFloors) {
+        await floorService.delete(floor.id);
+
+        const floorTables = tables.filter((t) => t.floorId === floor.id);
+        for (const table of floorTables) {
+          await tableService.delete(table.id);
+        }
+      }
+
+      for (const floor of draftFloors) {
+        if (floor.id.startsWith("temp-")) {
+          await floorService.create({
+            name: floor.name,
+            width: floor.width,
+            height: floor.height,
+          });
+        } else {
+          await floorService.update(floor.id, floor);
+        }
+      }
+
+      const updatedTables = await tableService.getAll();
+      const updatedFloors = await floorService.getAll();
+
+      setTables(updatedTables);
+      setFloors(updatedFloors);
+
+      setIsEditMode(false);
+      toast("Spatial map saved", "success");
+    } catch (err) {
+      toast("Save failed", "error");
+    } finally {
+      setIsSavingLayout(false);
+    }
   };
 
   const addToCart = (item: MenuItem) => {
@@ -263,7 +347,7 @@ const App: React.FC = () => {
     toast(`${item.name} added`, "success");
   };
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (cart.length === 0) return;
 
     if (orderType === "Dining" && !selectedTableId) {
@@ -275,152 +359,138 @@ const App: React.FC = () => {
     const tax = subtotal * 0.12;
     const total = subtotal + tax;
 
+    const newOrder: Omit<Order, "id"> = {
+      tableId: selectedTableId || undefined,
+      orderType,
+      items: [...cart],
+      status: "Pending",
+      timestamp: new Date().toISOString(),
+      subtotal,
+      tax,
+      total,
+    };
+
+    const docRef = await orderService.create(newOrder);
+
     if (orderType === "Dining" && selectedTableId) {
-      const activeTableOrder = orders.find(
-        (o) => o.tableId === selectedTableId && o.status !== "Paid"
-      );
-      if (activeTableOrder) {
-        const updatedOrders = orders.map((o) => {
-          if (o.id === activeTableOrder.id) {
-            const mergedItems = [...o.items];
-            cart.forEach((newItem) => {
-              const existing = mergedItems.find((mi) => mi.id === newItem.id);
-              if (existing) existing.quantity += newItem.quantity;
-              else mergedItems.push(newItem);
-            });
-            const subtotal = mergedItems.reduce(
-              (acc, mi) => acc + mi.price * mi.quantity,
-              0
-            );
-            const tax = subtotal * 0.12;
-            return {
-              ...o,
-              items: mergedItems,
-              subtotal,
-              tax,
-              total: subtotal + tax,
-            };
-          }
-          return o;
-        });
-        setOrders(updatedOrders);
-        toast(`Order added to Table ${selectedTable?.number}`, "success");
-      } else {
-        const newOrder: Order = {
-          id: `ord-${Date.now()}`,
-          tableId: selectedTableId,
-          orderType: "Dining",
-          items: [...cart],
-          status: "Pending",
-          timestamp: new Date().toISOString(),
-          subtotal,
-          tax,
-          total,
-        };
-        setOrders((prev) => [...prev, newOrder]);
-        setTables((prev) =>
-          prev.map((t) =>
-            t.id === selectedTableId
-              ? { ...t, status: "Occupied", currentOrderId: newOrder.id }
-              : t
-          )
-        );
-        toast(`Table ${selectedTable?.number} session started`, "success");
-      }
-    } else {
-      const newOrder: Order = {
-        id: `tkw-${Date.now()}`,
-        orderType: "Takeaway",
-        items: [...cart],
-        status: "Pending",
-        timestamp: new Date().toISOString(),
-        subtotal,
-        tax,
-        total,
-      };
-      setOrders((prev) => [...prev, newOrder]);
-      toast("Takeaway order placed successfully", "success");
+      await tableService.update(selectedTableId, {
+        status: "Occupied",
+        currentOrderId: docRef.id,
+      });
     }
+
+    const updatedOrders = await orderService.getAll();
+    setOrders(updatedOrders);
+
     setCart([]);
+    toast("Order placed successfully", "success");
   };
 
-  const clearTableBill = (tableId: string) => {
+  const clearTableBill = async (tableId: string) => {
     const orderToPay = orders.find(
       (o) => o.tableId === tableId && o.status !== "Paid"
     );
-    if (orderToPay)
-      setOrders((prev) =>
-        prev.map((o) => (o.id === orderToPay.id ? { ...o, status: "Paid" } : o))
-      );
-    setTables((prev) =>
-      prev.map((t) =>
-        t.id === tableId
-          ? { ...t, status: "Available", currentOrderId: undefined }
-          : t
-      )
-    );
+
+    if (!orderToPay) return;
+
+    await orderService.update(orderToPay.id, { status: "Paid" });
+
+    await tableService.update(tableId, {
+      status: "Available",
+      currentOrderId: null,
+    });
+
+    const updatedOrders = await orderService.getAll();
+    const updatedTables = await tableService.getAll();
+
+    setOrders(updatedOrders);
+    setTables(updatedTables);
+
     toast("Bill settled successfully", "success");
   };
 
-  const voidTableOrder = (tableId: string) => {
+  const voidTableOrder = async (tableId: string) => {
     const orderToVoid = orders.find(
       (o) => o.tableId === tableId && o.status !== "Paid"
     );
-    if (orderToVoid)
-      setOrders((prev) => prev.filter((o) => o.id !== orderToVoid.id));
-    setTables((prev) =>
-      prev.map((t) =>
-        t.id === tableId
-          ? { ...t, status: "Available", currentOrderId: undefined }
-          : t
-      )
-    );
+
+    if (!orderToVoid) return;
+
+    await orderService.delete(orderToVoid.id);
+
+    await tableService.update(tableId, {
+      status: "Available",
+      currentOrderId: null,
+    });
+
+    const updatedOrders = await orderService.getAll();
+    const updatedTables = await tableService.getAll();
+
+    setOrders(updatedOrders);
+    setTables(updatedTables);
+
     toast("Session cancelled", "info");
   };
 
   const updateDraftTable = (id: string, updates: Partial<Table>) => {
-    setDraftTables((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
+    if (!isEditMode) return;
+
+    const updatedTables = draftTables.map((t) =>
+      t.id === id ? { ...t, ...updates } : t
     );
+
+    setDraftTables(updatedTables);
+    pushToHistory(draftFloors, updatedTables);
   };
 
   const updateDraftFloor = (id: string, updates: Partial<Floor>) => {
-    setDraftFloors((prev) =>
-      prev.map((f) => (f.id === id ? { ...f, ...updates } : f))
+    if (!isEditMode) return;
+
+    const updatedFloors = draftFloors.map((f) =>
+      f.id === id ? { ...f, ...updates } : f
     );
+
+    setDraftFloors(updatedFloors);
+    pushToHistory(updatedFloors, draftTables);
   };
 
   const addNewFloor = () => {
-    const newId = `f-${Date.now()}`;
+    if (!isEditMode) return;
+
     const newFloor: Floor = {
-      id: newId,
+      id: `temp-${Date.now()}`,
       name: `Floor ${draftFloors.length + 1}`,
       width: 20,
       height: 20,
     };
-    setDraftFloors((prev) => [...prev, newFloor]);
-    setActiveFloorId(newId);
-    setEditingFloorId(newId);
-    toast("New floor node added", "success");
+
+    const updatedFloors = [...draftFloors, newFloor];
+
+    setDraftFloors(updatedFloors);
+    setActiveFloorId(newFloor.id);
+
+    pushToHistory(updatedFloors, draftTables);
   };
 
   const deleteFloor = (id: string) => {
-    if (draftFloors.length <= 1) {
-      toast("At least one floor is required", "error");
-      return;
-    }
+    if (!isEditMode) return;
+
     const updatedFloors = draftFloors.filter((f) => f.id !== id);
+    const updatedTables = draftTables.filter((t) => t.floorId !== id);
+
     setDraftFloors(updatedFloors);
-    setDraftTables((prev) => prev.filter((t) => t.floorId !== id));
-    if (activeFloorId === id) setActiveFloorId(updatedFloors[0].id);
-    toast("Floor node removed", "info");
+    setDraftTables(updatedTables);
+
+    pushToHistory(updatedFloors, updatedTables);
+
+    toast("Floor removed from layout", "info");
   };
 
   const addNewTable = () => {
-    if (!activeFloors.find((f) => f.id === activeFloorId)) return;
-    const newId = `t-${Date.now()}`;
+    if (!isEditMode || !activeFloorId) return;
+
     const newTable: Table = {
-      id: newId,
+      id: `temp-${Date.now()}`,
       number: draftTables.length + 1,
       capacity: 4,
       status: "Available",
@@ -431,45 +501,87 @@ const App: React.FC = () => {
       rotation: 0,
       floorId: activeFloorId,
     };
-    setDraftTables((prev) => [...prev, newTable]);
-    setSelectedTableId(newId);
+
+    const updatedTables = [...draftTables, newTable];
+
+    setDraftTables(updatedTables);
+    pushToHistory(draftFloors, updatedTables);
   };
 
   const deleteDraftTable = (id: string) => {
-    setDraftTables((prev) => prev.filter((t) => t.id !== id));
-    setSelectedTableId(null);
+    if (!isEditMode) return;
+
+    const updatedTables = draftTables.filter((t) => t.id !== id);
+
+    setDraftTables(updatedTables);
+    pushToHistory(draftFloors, updatedTables);
   };
 
-  const handleAddDish = (dish: MenuItem) => {
-    setMenuItems((prev) => [...prev, dish]);
+  const handleUndo = () => {
+    if (historyIndex <= 0) return;
+
+    const newIndex = historyIndex - 1;
+    const snapshot = history[newIndex];
+
+    setDraftFloors(snapshot.floors);
+    setDraftTables(snapshot.tables);
+    setHistoryIndex(newIndex);
+  };
+
+  const handleRedo = () => {
+    if (historyIndex >= history.length - 1) return;
+
+    const newIndex = historyIndex + 1;
+    const snapshot = history[newIndex];
+
+    setDraftFloors(snapshot.floors);
+    setDraftTables(snapshot.tables);
+    setHistoryIndex(newIndex);
+  };
+
+  const handleAddDish = async (dish: MenuItem) => {
+    await menuService.create(dish);
+    const updated = await menuService.getAll();
+    setMenuItems(updated);
+
     toast(`${dish.name} registered`, "success");
   };
 
-  const handleUpdateDish = (id: string, updates: Partial<MenuItem>) => {
-    setMenuItems((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, ...updates } : m))
-    );
+  const handleUpdateDish = async (id: string, updates: Partial<MenuItem>) => {
+    await menuService.update(id, updates);
+    const updated = await menuService.getAll();
+    setMenuItems(updated);
+
     toast("Asset updated", "success");
   };
 
-  const handleDeleteDish = (id: string) => {
-    setMenuItems((prev) => prev.filter((m) => m.id !== id));
+  const handleDeleteDish = async (id: string) => {
+    await menuService.delete(id);
+    const updated = await menuService.getAll();
+    setMenuItems(updated);
+
     toast("Asset removed from registry", "info");
   };
 
-  const addWaiter = (waiter: Waiter) => {
-    setWaiters((prev) => [...prev, waiter]);
+  const addWaiter = async (waiter: Waiter) => {
+    await staffService.create(waiter);
+    const updated = await staffService.getAll();
+    setWaiters(updated);
+
     toast(`Staff ${waiter.name} added`, "success");
   };
 
-  const updateWaiter = (id: string, updates: Partial<Waiter>) => {
-    setWaiters((prev) =>
-      prev.map((w) => (w.id === id ? { ...w, ...updates } : w))
-    );
+  const updateWaiter = async (id: string, updates: Partial<Waiter>) => {
+    await staffService.update(id, updates);
+    const updated = await staffService.getAll();
+    setWaiters(updated);
   };
 
-  const deleteWaiter = (id: string) => {
-    setWaiters((prev) => prev.filter((w) => w.id !== id));
+  const deleteWaiter = async (id: string) => {
+    await staffService.delete(id);
+    const updated = await staffService.getAll();
+    setWaiters(updated);
+
     toast("Staff member removed", "info");
   };
 
@@ -502,6 +614,7 @@ const App: React.FC = () => {
             enterEditMode={enterEditMode}
             cancelEdit={cancelEdit}
             saveEdit={saveEdit}
+            saveLoading={isSavingLayout}
             addNewFloor={addNewFloor}
             deleteFloor={deleteFloor}
             addNewTable={addNewTable}
@@ -520,6 +633,10 @@ const App: React.FC = () => {
             clearTableBill={clearTableBill}
             voidTableOrder={voidTableOrder}
             setActiveTab={setActiveTab}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+            canUndo={historyIndex > 0}
+            canRedo={historyIndex < history.length - 1}
           />
         );
       case "pos":
@@ -595,9 +712,29 @@ const App: React.FC = () => {
   // 1️⃣ Wait for Firebase to restore session FIRST
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-zinc-950">
-        <div className="text-zinc-400 text-sm font-bold uppercase tracking-widest">
-          Restoring session...
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-zinc-950 relative overflow-hidden">
+        {/* Background Glow */}
+        <div className="absolute inset-0 pointer-events-none opacity-20">
+          <div className="absolute top-[-20%] left-[-20%] w-[80%] h-[80%] bg-indigo-600 blur-[180px] rounded-full animate-pulse" />
+        </div>
+
+        {/* Loader Content */}
+        <div className="relative z-10 flex flex-col items-center gap-6">
+          {/* Spinning Ring */}
+          <div className="relative w-16 h-16">
+            <div className="absolute inset-0 rounded-full border-4 border-zinc-200 dark:border-zinc-800"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin"></div>
+          </div>
+
+          {/* Brand Text */}
+          <div className="text-center">
+            <h2 className="text-xl font-black tracking-widest uppercase text-zinc-900 dark:text-white">
+              Elysium POS
+            </h2>
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-400 mt-2">
+              Restoring Session
+            </p>
+          </div>
         </div>
       </div>
     );
