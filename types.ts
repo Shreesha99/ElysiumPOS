@@ -1,6 +1,6 @@
-
 export type Category = 'Starters' | 'Mains' | 'Desserts' | 'Drinks' | 'Specials';
 export type OrderType = 'Dining' | 'Takeaway';
+export type StaffStatus = 'Active' | 'On Break' | 'Offline' | 'On Leave';
 
 export interface MenuItem {
   id: string;
@@ -19,9 +19,12 @@ export interface CartItem extends MenuItem {
 export interface Waiter {
   id: string;
   name: string;
-  status: 'Active' | 'On Break' | 'Offline';
+  role: string;
+  status: StaffStatus;
   assignedTables: string[]; // Table IDs
   shiftStart: string;
+  shiftEnd: string;
+  leaveDates: string[]; // ISO Strings
 }
 
 export interface Floor {

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import Auth from './components/Auth';
@@ -312,6 +311,21 @@ const App: React.FC = () => {
     toast(`${item.name} registered`, "success");
   };
 
+  // Staff Management Handlers
+  const addWaiter = (waiter: Waiter) => {
+    setWaiters(prev => [...prev, waiter]);
+    toast(`Staff ${waiter.name} added`, "success");
+  };
+
+  const updateWaiter = (id: string, updates: Partial<Waiter>) => {
+    setWaiters(prev => prev.map(w => w.id === id ? { ...w, ...updates } : w));
+  };
+
+  const deleteWaiter = (id: string) => {
+    setWaiters(prev => prev.filter(w => w.id !== id));
+    toast("Staff member removed", "info");
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
@@ -353,7 +367,14 @@ const App: React.FC = () => {
           />
         );
       case 'waiters':
-        return <StaffView waiters={waiters} />;
+        return (
+          <StaffView 
+            waiters={waiters} 
+            addWaiter={addWaiter} 
+            updateWaiter={updateWaiter} 
+            deleteWaiter={deleteWaiter} 
+          />
+        );
       case 'inventory':
         return (
           <InventoryView 

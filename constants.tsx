@@ -1,4 +1,3 @@
-
 import { MenuItem, Table, Category, Waiter, Floor } from './types';
 
 export const CATEGORIES: Category[] = ['Starters', 'Mains', 'Desserts', 'Drinks', 'Specials'];
@@ -46,6 +45,24 @@ export const INITIAL_TABLES: Table[] = [
 ];
 
 export const INITIAL_WAITERS: Waiter[] = [
-  { id: 'w1', name: 'Arjun Mehta', status: 'Active', assignedTables: ['t1', 't2'], shiftStart: '09:00 AM' },
-  { id: 'w2', name: 'Sanya Sharma', status: 'Active', assignedTables: ['t3', 't5'], shiftStart: '10:00 AM' },
+  { 
+    id: 'w1', 
+    name: 'Arjun Mehta', 
+    role: 'Head Server',
+    status: 'Active', 
+    assignedTables: ['t1', 't2'], 
+    shiftStart: '09:00', 
+    shiftEnd: '17:00', 
+    leaveDates: [] 
+  },
+  { 
+    id: 'w2', 
+    name: 'Sanya Sharma', 
+    role: 'Captain',
+    status: 'Active', 
+    assignedTables: ['t3', 't5'], 
+    shiftStart: '10:00', 
+    shiftEnd: '18:00', 
+    leaveDates: [] 
+  },
 ];
