@@ -28,7 +28,7 @@ import DashboardView from "./components/DashboardView";
 import FloorMapView from "./components/FloorMapView";
 import POSView from "./components/POSView";
 import StaffView from "./components/StaffView";
-import InventoryView from "./components/InventoryView";
+import InventoryView from "./components/InventoryView/InventoryView";
 import InsightsView from "./components/InsightsView";
 
 const App: React.FC = () => {
@@ -633,7 +633,7 @@ const App: React.FC = () => {
         user={user}
         onLogout={handleLogout}
       />
-      <main className="flex-1 lg:ml-72 transition-all relative min-w-0">
+      <main className="flex-1 lg:ml-72 transition-all relative min-w-0 h-screen overflow-hidden">
         {renderContent()}
       </main>
     </div>
