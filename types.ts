@@ -67,4 +67,6 @@ export interface BusinessInsight {
   value: string;
   trend: 'up' | 'down' | 'neutral';
   description: string;
+  category: 'Revenue' | 'Operations' | 'Menu' | 'Customer';
+  impact: 'High' | 'Medium' | 'Low';
 }

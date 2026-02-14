@@ -298,17 +298,19 @@ const App: React.FC = () => {
     setSelectedTableId(null);
   };
 
-  const handleAddDish = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newItem.name || !newItem.price) return;
-    const item: MenuItem = {
-      id: `m-${Date.now()}`, name: newItem.name, description: "Added via asset registry.",
-      price: newItem.price, category: (newItem.category as Category) || 'Mains',
-      image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600', stock: 20
-    };
-    setMenuItems(prev => [...prev, item]);
-    setNewItem({ category: 'Mains', price: 0 });
-    toast(`${item.name} registered`, "success");
+  const handleAddDish = (dish: MenuItem) => {
+    setMenuItems(prev => [...prev, dish]);
+    toast(`${dish.name} registered`, "success");
+  };
+
+  const handleUpdateDish = (id: string, updates: Partial<MenuItem>) => {
+    setMenuItems(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
+    toast("Asset updated", "success");
+  };
+
+  const handleDeleteDish = (id: string) => {
+    setMenuItems(prev => prev.filter(m => m.id !== id));
+    toast("Asset removed from registry", "info");
   };
 
   // Staff Management Handlers
@@ -378,12 +380,15 @@ const App: React.FC = () => {
       case 'inventory':
         return (
           <InventoryView 
-            handleAddDish={handleAddDish} newItem={newItem} setNewItem={setNewItem} 
-            CATEGORIES={CATEGORIES} menuItems={menuItems}
+            handleAddDish={handleAddDish} 
+            handleUpdateDish={handleUpdateDish}
+            handleDeleteDish={handleDeleteDish}
+            CATEGORIES={CATEGORIES} 
+            menuItems={menuItems}
           />
         );
       case 'insights':
-        return <InsightsView insights={insights} fetchAIInsights={fetchAIInsights} />;
+        return <InsightsView insights={insights} fetchAIInsights={fetchAIInsights} isLoading={isLoadingInsights} />;
       default:
         return <div className="p-10 text-zinc-500 uppercase tracking-widest text-xs font-bold">Node selection required.</div>;
     }
