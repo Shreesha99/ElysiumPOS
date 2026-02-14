@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import Auth from './components/Auth';
 import { Toaster, toast } from './components/Toaster';
@@ -24,7 +23,9 @@ const App: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<Category>('Starters');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
-  const [isInitializing, setIsInitializing] = useState(false);
+  
+  // Persistence Lock
+  const [hasHydrated, setHasHydrated] = useState(false);
 
   // User-scoped data states
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -48,67 +49,53 @@ const App: React.FC = () => {
 
   const [insights, setInsights] = useState<BusinessInsight[]>([]);
   const [isLoadingInsights, setIsLoadingInsights] = useState(false);
+  const [insightError, setInsightError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [upsellSuggestions, setUpsellSuggestions] = useState<string[]>([]);
 
   const [liveTraffic, setLiveTraffic] = useState(Math.floor(Math.random() * 50) + 20);
 
-  // Helper for user-scoped storage
-  const getUserKey = (key: string) => user ? `elysium_${user.id}_${key}` : null;
+  // Unified Storage Access
+  const getUserKey = useCallback((key: string) => user ? `elysium_${user.id}_${key}` : null, [user]);
 
-  const saveUserData = useCallback(() => {
-    if (!user) return;
-    localStorage.setItem(getUserKey('menu')!, JSON.stringify(menuItems));
-    localStorage.setItem(getUserKey('floors')!, JSON.stringify(floors));
-    localStorage.setItem(getUserKey('tables')!, JSON.stringify(tables));
-    localStorage.setItem(getUserKey('waiters')!, JSON.stringify(waiters));
-    localStorage.setItem(getUserKey('orders')!, JSON.stringify(orders));
-  }, [user, menuItems, floors, tables, waiters, orders]);
-
-  // Sync data whenever it changes
-  useEffect(() => {
-    if (user && !isInitializing) {
-      saveUserData();
-    }
-  }, [saveUserData, isInitializing]);
-
-  // Load user data on user change
+  // Hydrate once when user changes
   useEffect(() => {
     if (user) {
-      setIsInitializing(true);
-      const load = () => {
-        const m = localStorage.getItem(getUserKey('menu')!);
-        const f = localStorage.getItem(getUserKey('floors')!);
-        const t = localStorage.getItem(getUserKey('tables')!);
-        const w = localStorage.getItem(getUserKey('waiters')!);
-        const o = localStorage.getItem(getUserKey('orders')!);
+      const m = localStorage.getItem(getUserKey('menu')!);
+      const f = localStorage.getItem(getUserKey('floors')!);
+      const t = localStorage.getItem(getUserKey('tables')!);
+      const w = localStorage.getItem(getUserKey('waiters')!);
+      const o = localStorage.getItem(getUserKey('orders')!);
 
-        setMenuItems(m ? JSON.parse(m) : INITIAL_MENU_ITEMS);
-        const loadedFloors = f ? JSON.parse(f) : INITIAL_FLOORS;
-        setFloors(loadedFloors);
-        setTables(t ? JSON.parse(t) : INITIAL_TABLES);
-        setWaiters(w ? JSON.parse(w) : INITIAL_WAITERS);
-        setOrders(o ? JSON.parse(o) : []);
-        
-        if (loadedFloors.length > 0) setActiveFloorId(loadedFloors[0].id);
-        
-        setIsInitializing(false);
-      };
+      setMenuItems(m ? JSON.parse(m) : INITIAL_MENU_ITEMS);
+      const loadedFloors = f ? JSON.parse(f) : INITIAL_FLOORS;
+      setFloors(loadedFloors);
+      setTables(t ? JSON.parse(t) : INITIAL_TABLES);
+      setWaiters(w ? JSON.parse(w) : INITIAL_WAITERS);
+      setOrders(o ? JSON.parse(o) : []);
       
-      // Artificial delay for smooth environment transition
-      const timer = setTimeout(load, 800);
-      return () => clearTimeout(timer);
+      if (loadedFloors.length > 0) setActiveFloorId(loadedFloors[0].id);
+      setHasHydrated(true);
     } else {
-      // Clear state on logout
+      setHasHydrated(false);
       setMenuItems([]);
       setFloors([]);
       setTables([]);
       setWaiters([]);
       setOrders([]);
-      setCart([]);
-      setSelectedTableId(null);
     }
-  }, [user]);
+  }, [user, getUserKey]);
+
+  // Atomic Save logic - only saves if hydrated to prevent overwriting with []
+  useEffect(() => {
+    if (user && hasHydrated) {
+      localStorage.setItem(getUserKey('menu')!, JSON.stringify(menuItems));
+      localStorage.setItem(getUserKey('floors')!, JSON.stringify(floors));
+      localStorage.setItem(getUserKey('tables')!, JSON.stringify(tables));
+      localStorage.setItem(getUserKey('waiters')!, JSON.stringify(waiters));
+      localStorage.setItem(getUserKey('orders')!, JSON.stringify(orders));
+    }
+  }, [user, hasHydrated, menuItems, floors, tables, waiters, orders, getUserKey]);
 
   const activeTables = isEditMode ? draftTables : tables;
   const activeFloors = isEditMode ? draftFloors : floors;
@@ -117,7 +104,7 @@ const App: React.FC = () => {
   
   const stats = useMemo(() => {
     const totalRevenue = orders.filter(o => o.status === 'Paid').reduce((acc, o) => acc + o.total, 0);
-    const pendingRevenue = orders.filter(o => o.status !== 'Paid').reduce((acc, o) => acc + o.total, 0);
+    const pendingOrdersCount = orders.filter(o => o.status !== 'Paid').length;
     const avgOrderValue = orders.length > 0 ? totalRevenue / orders.length : 0;
     const occupiedTables = tables.filter(t => t.status === 'Occupied').length;
     const occupancyRate = (occupiedTables / (tables.length || 1)) * 100;
@@ -125,7 +112,7 @@ const App: React.FC = () => {
       hour: `${i + 9}:00`,
       value: Math.floor(Math.random() * 5000) + 1000
     }));
-    return { totalRevenue, pendingRevenue, avgOrderValue, occupiedTables, occupancyRate, hourlySales };
+    return { totalRevenue, pendingOrdersCount, avgOrderValue, occupiedTables, occupancyRate, hourlySales };
   }, [orders, tables]);
 
   useEffect(() => {
@@ -164,28 +151,33 @@ const App: React.FC = () => {
 
   const fetchAIInsights = useCallback(async () => {
     setIsLoadingInsights(true);
+    setInsightError(null);
     try {
-      const data = await geminiService.getBusinessInsights({ revenue: stats.totalRevenue, occupancy: stats.occupancyRate, staff: waiters.length, menuItems: menuItems.length });
+      const data = await geminiService.getBusinessInsights({ 
+        revenue: stats.totalRevenue, 
+        occupancy: stats.occupancyRate.toFixed(1), 
+        staff: waiters.length, 
+        menuItems: menuItems.length,
+        pendingOrders: stats.pendingOrdersCount
+      });
       setInsights(data);
     } catch (err: any) {
       if (err.message === "API_KEY_MISSING") {
-        toast("Missing API Key. Falling back to Demo Mode.", "error");
-        setInsights(geminiService.getMockInsights());
+        setInsightError("KEY_MISSING");
       } else if (err.message === "QUOTA_EXHAUSTED") {
-        toast("Gemini rate limit reached. Activating Demo Insights.", "info");
-        setInsights(geminiService.getMockInsights());
+        setInsightError("QUOTA_REACHED");
       } else {
-        toast("AI strategy node error. Using simulated data.", "error");
-        setInsights(geminiService.getMockInsights());
+        setInsightError("GENERAL_ERROR");
       }
     } finally {
       setIsLoadingInsights(false);
     }
-  }, [stats.totalRevenue, stats.occupancyRate, waiters.length, menuItems.length]);
+  }, [stats.totalRevenue, stats.occupancyRate, stats.pendingOrdersCount, waiters.length, menuItems.length]);
 
   const handleLogout = () => {
     authService.logout();
     setUser(null);
+    setHasHydrated(false);
     toast("Session terminated", "info");
   };
 
@@ -375,11 +367,11 @@ const App: React.FC = () => {
   };
 
   const renderContent = () => {
-    if (isInitializing) {
+    if (!hasHydrated && user) {
       return (
         <div className="h-full flex flex-col items-center justify-center space-y-4 bg-zinc-50 dark:bg-zinc-950">
           <Loader2 size={48} className="text-indigo-600 animate-spin" />
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400">Syncing user environment...</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400">Loading User Environment...</p>
         </div>
       );
     }
@@ -443,7 +435,7 @@ const App: React.FC = () => {
           />
         );
       case 'insights':
-        return <InsightsView insights={insights} fetchAIInsights={fetchAIInsights} isLoading={isLoadingInsights} />;
+        return <InsightsView insights={insights} fetchAIInsights={fetchAIInsights} isLoading={isLoadingInsights} error={insightError} />;
       default:
         return <div className="p-10 text-zinc-500 uppercase tracking-widest text-xs font-bold">Node selection required.</div>;
     }
