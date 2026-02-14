@@ -27,7 +27,7 @@ import { authService, User } from "./services/authService";
 import DashboardView from "./components/DashboardView";
 import FloorMapView from "./components/FloorMapView";
 import POSView from "./components/POSView";
-import StaffView from "./components/StaffView";
+import StaffView from "./components/StaffView/StaffView";
 import InventoryView from "./components/InventoryView/InventoryView";
 import InsightsView from "./components/InsightsView";
 
