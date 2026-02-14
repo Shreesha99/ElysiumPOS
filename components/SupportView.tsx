@@ -171,9 +171,118 @@ const SupportView: React.FC = () => {
       </div>
 
       {/* BODY */}
-      <div className="flex-1 flex overflow-hidden px-6 py-8">
-        <div className="max-w-[1400px] mx-auto w-full grid lg:grid-cols-3 gap-8 overflow-hidden">
-          {/* FAQ SCROLLABLE ONLY */}
+      <div className="flex-1 relative overflow-hidden">
+        {/* MOBILE */}
+        <div className="flex flex-col h-full lg:hidden">
+          {/* FAQ SCROLLABLE AREA */}
+          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
+            {filteredFaqs.map((faq, index) => {
+              const isOpen = activeIndex === index;
+
+              return (
+                <div
+                  key={index}
+                  className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl"
+                >
+                  <button
+                    onClick={() => setActiveIndex(isOpen ? null : index)}
+                    className="w-full flex items-center justify-between px-6 py-5"
+                  >
+                    <div className="text-left">
+                      <p className="text-xs uppercase tracking-widest text-indigo-500 mb-1">
+                        {faq.category}
+                      </p>
+                      <p className="font-medium dark:text-white">
+                        {faq.question}
+                      </p>
+                    </div>
+
+                    <ChevronDown
+                      size={18}
+                      className={`transition-transform duration-200 ${
+                        isOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  <AnimatePresence>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.15 }}
+                        className="px-6 pb-6 text-sm text-zinc-600 dark:text-zinc-400"
+                      >
+                        {faq.answer}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* CONTACT CARDS */}
+          <div className="px-6 pt-6 pb-24 space-y-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6">
+              <h2 className="font-semibold dark:text-white">
+                Submit a Message
+              </h2>
+
+              {submitted ? (
+                <div className="flex flex-col items-center text-center py-6">
+                  <CheckCircle2 size={36} className="text-emerald-500" />
+                  <p className="mt-4 text-sm dark:text-white">
+                    Message submitted successfully
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <textarea
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder="Describe your issue..."
+                    className="w-full h-24 bg-zinc-100 dark:bg-zinc-800 rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 mt-4"
+                  />
+
+                  <button
+                    onClick={() => {
+                      if (message.trim()) {
+                        setSubmitted(true);
+                        setMessage("");
+                      }
+                    }}
+                    className="w-full bg-indigo-600 text-white py-3 rounded-lg text-sm font-medium hover:bg-indigo-700 transition flex items-center justify-center gap-2 mt-3"
+                  >
+                    <Send size={16} />
+                    Submit Message
+                  </button>
+                </>
+              )}
+            </div>
+
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6">
+              <h2 className="font-semibold dark:text-white mb-4">
+                Direct Contact
+              </h2>
+
+              <div className="flex items-center gap-3 text-sm">
+                <Mail size={16} className="text-indigo-600" />
+                hello@the-elysium-project.in
+              </div>
+
+              <div className="flex items-center gap-3 text-sm mt-3">
+                <Phone size={16} className="text-indigo-600" />
+                +91 9606 239 247
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* DESKTOP */}
+        <div className="hidden lg:grid lg:grid-cols-3 gap-8 h-full px-6 py-8">
+          {/* FAQ */}
           <div className="lg:col-span-2 overflow-y-auto pr-4 space-y-4">
             {filteredFaqs.map((faq, index) => {
               const isOpen = activeIndex === index;
@@ -222,16 +331,18 @@ const SupportView: React.FC = () => {
             })}
           </div>
 
-          {/* CONTACT SIDE FIXED */}
+          {/* CONTACT */}
           <div className="space-y-6">
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 space-y-4">
-              <h2 className="font-semibold dark:text-white">Submit a Ticket</h2>
+              <h2 className="font-semibold dark:text-white">
+                Submit a Message
+              </h2>
 
               {submitted ? (
                 <div className="flex flex-col items-center text-center py-6">
                   <CheckCircle2 size={36} className="text-emerald-500" />
                   <p className="mt-4 text-sm dark:text-white">
-                    Ticket submitted successfully
+                    Message submitted successfully
                   </p>
                 </div>
               ) : (
@@ -253,7 +364,7 @@ const SupportView: React.FC = () => {
                     className="w-full bg-indigo-600 text-white py-3 rounded-lg text-sm font-medium hover:bg-indigo-700 transition flex items-center justify-center gap-2"
                   >
                     <Send size={16} />
-                    Submit Ticket
+                    Submit Message
                   </button>
                 </>
               )}
