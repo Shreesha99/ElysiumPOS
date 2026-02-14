@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -7,19 +6,14 @@ import {
   Layers, 
   Box, 
   Settings2, 
-  Save, 
   RotateCcw, 
-  ChevronRight, 
-  ChevronDown, 
-  XCircle, 
-  Edit2, 
-  Trash2, 
-  Check, 
+  CheckCircle2, 
   Grip, 
   Maximize, 
   Users,
   Search,
-  X
+  X,
+  XCircle
 } from 'lucide-react';
 import { Table, Floor, Order } from '../types';
 
@@ -126,6 +120,18 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                  >
                     <Grip size={20} />
                  </div>
+                 
+                 {/* Rotation handle - Restore spatial rotation functionality */}
+                 <div 
+                   className="absolute -top-6 -right-6 w-12 h-12 bg-white dark:bg-zinc-800 rounded-2xl flex items-center justify-center text-indigo-600 cursor-pointer shadow-2xl border-4 border-indigo-600 z-[60] hover:bg-indigo-600 hover:text-white transition-all active:scale-90"
+                   onClick={(e) => {
+                     e.stopPropagation();
+                     updateDraftTable(table.id, { rotation: ((table.rotation || 0) + 45) % 360 });
+                   }}
+                 >
+                    <RotateCcw size={20} />
+                 </div>
+
                  <div 
                    className="absolute -bottom-6 -right-6 w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white cursor-se-resize shadow-2xl border-4 border-white z-[60]"
                    onMouseDown={(e) => {
@@ -174,13 +180,28 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
             <div className="flex gap-1 shrink-0">
               {activeFloors.map(f => (
-                <button 
-                  key={f.id} 
-                  onClick={() => setActiveFloorId(f.id)} 
-                  className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${activeFloorId === f.id ? 'bg-zinc-900 text-white dark:bg-indigo-600 border-transparent shadow-md' : 'bg-white dark:bg-zinc-900 text-zinc-500 border-zinc-100 dark:border-zinc-800'}`}
-                >
-                  {f.name}
-                </button>
+                <div key={f.id} className="relative flex items-center">
+                  {editingFloorId === f.id ? (
+                    <input 
+                      autoFocus
+                      className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-white dark:bg-zinc-900 border-2 border-indigo-500 outline-none w-32 shadow-lg"
+                      value={f.name}
+                      onChange={(e) => updateDraftFloor(f.id, { name: e.target.value })}
+                      onBlur={() => setEditingFloorId(null)}
+                      onKeyDown={(e) => e.key === 'Enter' && setEditingFloorId(null)}
+                    />
+                  ) : (
+                    <button 
+                      onClick={() => { 
+                        setActiveFloorId(f.id); 
+                        if (isEditMode && activeFloorId === f.id) setEditingFloorId(f.id); 
+                      }} 
+                      className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${activeFloorId === f.id ? 'bg-zinc-900 text-white dark:bg-indigo-600 border-transparent shadow-md' : 'bg-white dark:bg-zinc-900 text-zinc-500 border-zinc-100 dark:border-zinc-800'}`}
+                    >
+                      {f.name}
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
             {isEditMode && (
@@ -309,10 +330,22 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
               <div className="h-1.5 w-12 bg-zinc-200 dark:bg-zinc-800 rounded-full mx-auto mb-4 lg:hidden shrink-0" />
               
               <div className="flex items-center justify-between shrink-0">
-                 <div className="min-w-0">
+                 <div className="min-w-0 flex-1">
                     <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-1">{isEditMode ? 'Node Config' : 'Live Status'}</p>
                     <div className="flex items-center gap-3">
-                      <h3 className="text-2xl sm:text-4xl font-black uppercase tracking-tighter truncate">Table T{selectedTable.number}</h3>
+                      {isEditMode ? (
+                        <div className="flex items-center gap-2">
+                           <span className="text-xl sm:text-2xl font-black">T-</span>
+                           <input 
+                             type="number"
+                             className="w-24 bg-zinc-100 dark:bg-zinc-900 border-none p-2 rounded-xl text-xl sm:text-2xl font-black uppercase tracking-tighter outline-none focus:ring-2 focus:ring-indigo-500"
+                             value={selectedTable.number}
+                             onChange={(e) => updateDraftTable(selectedTable.id, { number: parseInt(e.target.value) || 0 })}
+                           />
+                        </div>
+                      ) : (
+                        <h3 className="text-2xl sm:text-4xl font-black uppercase tracking-tighter truncate">Table T{selectedTable.number}</h3>
+                      )}
                     </div>
                  </div>
                  <button onClick={() => setSelectedTableId(null)} className="p-2 sm:p-3 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-2xl text-zinc-400"><X size={24}/></button>
@@ -334,7 +367,7 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                      </div>
                      <div className="space-y-3">
                         <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Spatial Logic</p>
-                        <p className="text-xs font-medium text-zinc-500 leading-relaxed">Position and dimensions are locked in 2D. Switch to 3D spatial editor for full geometry override.</p>
+                        <p className="text-xs font-medium text-zinc-500 leading-relaxed uppercase tracking-widest opacity-60">Position and dimensions are locked in 2D. Switch to 3D spatial editor for full geometry override.</p>
                      </div>
                   </div>
                 ) : (
