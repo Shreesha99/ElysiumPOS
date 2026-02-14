@@ -59,7 +59,6 @@ const App: React.FC = () => {
   const [insights, setInsights] = useState<BusinessInsight[]>([]);
   const [isLoadingInsights, setIsLoadingInsights] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [newItem, setNewItem] = useState<Partial<MenuItem>>({ category: 'Mains', price: 0 });
   const [upsellSuggestions, setUpsellSuggestions] = useState<string[]>([]);
 
   const [liveTraffic, setLiveTraffic] = useState(Math.floor(Math.random() * 50) + 20);
@@ -131,9 +130,14 @@ const App: React.FC = () => {
       setInsights(data);
     } catch (err: any) {
       if (err.message === "API_KEY_MISSING") {
-        toast("Missing API Key. Check your environment configuration.", "error");
+        toast("Missing API Key. Falling back to Demo Mode.", "error");
+        setInsights(geminiService.getMockInsights());
+      } else if (err.message === "QUOTA_EXHAUSTED") {
+        toast("Gemini rate limit reached. Activating Demo Insights.", "info");
+        setInsights(geminiService.getMockInsights());
       } else {
-        toast("AI strategy node error. Check network connection.", "error");
+        toast("AI strategy node error. Using simulated data.", "error");
+        setInsights(geminiService.getMockInsights());
       }
     } finally {
       setIsLoadingInsights(false);
