@@ -386,7 +386,10 @@ const App: React.FC = () => {
     }
 
     const updatedOrders = await orderService.getAll();
+    const updatedTables = await tableService.getAll();
+
     setOrders(updatedOrders);
+    setTables(updatedTables);
 
     setCart([]);
     toast("Order placed successfully", "success");
