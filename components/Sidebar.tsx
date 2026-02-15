@@ -16,6 +16,7 @@ import {
   CircleHelp,
 } from "lucide-react";
 import { AppUser } from "../services/authService";
+import BrandIcon from "./BrandIcon";
 
 interface SidebarProps {
   activeTab: string;
@@ -49,12 +50,13 @@ const Sidebar: React.FC<SidebarProps> = ({
     <>
       <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-72 bg-white dark:bg-zinc-950 border-r border-zinc-100 dark:border-zinc-900 z-40 flex-col shadow-sm">
         <div className="p-8 flex items-center gap-3">
-          <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
-            <span className="text-white font-extrabold text-2xl">E</span>
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center">
+            {/* <span className="text-white font-extrabold text-2xl">E</span> */}
+            <BrandIcon />
           </div>
           <div>
             <h1 className="font-extrabold text-lg tracking-tight dark:text-white uppercase">
-              Elysium <span className="text-indigo-600">POS</span>
+              Elysium <span className="text-indigo-600">POSS</span>
             </h1>
             <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">
               Premium Intelligence

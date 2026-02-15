@@ -25,7 +25,7 @@ import { orderService } from "./services/orderService";
 // View Components
 import DashboardView from "./components/DashboardView";
 import FloorMapView from "./components/FloorMapView";
-import POSView from "./components/POSView";
+import POSView from "./components/POSView/POSView";
 import StaffView from "./components/StaffView/StaffView";
 import InventoryView from "./components/InventoryView/InventoryView";
 import InsightsView from "./components/InsightsView";
@@ -51,6 +51,7 @@ const App: React.FC = () => {
   const [tables, setTables] = useState<Table[]>([]);
   const [waiters, setWaiters] = useState<Waiter[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
 
   const [isEditMode, setIsEditMode] = useState(false);
   const [draftTables, setDraftTables] = useState<Table[]>([]);
@@ -152,8 +153,13 @@ const App: React.FC = () => {
   );
 
   const stats = useMemo(() => {
-    const settledOrders = orders.filter((o) => o.status === "Paid");
+    const settledOrders = orders.filter(
+      (o) =>
+        o.status === "Paid" &&
+        (o.orderType === "Dining" || o.orderType === "Takeaway")
+    );
     const totalRevenue = settledOrders.reduce((acc, o) => acc + o.total, 0);
+
     const pendingOrdersCount = orders.filter((o) => o.status !== "Paid").length;
     const avgOrderValue =
       settledOrders.length > 0 ? totalRevenue / settledOrders.length : 0;
@@ -356,43 +362,57 @@ const App: React.FC = () => {
   const handleCheckout = async () => {
     if (cart.length === 0) return;
 
-    if (orderType === "Dining" && !selectedTableId) {
-      toast("Please select a table for Dining orders", "error");
-      return;
+    try {
+      setIsSubmittingOrder(true);
+
+      if (orderType === "Dining" && !selectedTableId) {
+        toast("Please select a table for Dining orders", "error");
+        return;
+      }
+
+      const subtotal = cart.reduce(
+        (acc, mi) => acc + mi.price * mi.quantity,
+        0
+      );
+      const tax = subtotal * 0.12;
+      const total = subtotal + tax;
+
+      const newOrder: Omit<Order, "id"> = {
+        orderType,
+        items: [...cart],
+        status: orderType === "Takeaway" ? "Paid" : "Pending",
+        timestamp: new Date().toISOString(),
+        subtotal,
+        tax,
+        total,
+        ...(orderType === "Dining" && selectedTableId
+          ? { tableId: selectedTableId }
+          : {}),
+      };
+
+      const docRef = await orderService.create(newOrder);
+
+      if (orderType === "Dining" && selectedTableId) {
+        await tableService.update(selectedTableId, {
+          status: "Occupied",
+          currentOrderId: docRef.id,
+        });
+      }
+
+      const updatedOrders = await orderService.getAll();
+      const updatedTables = await tableService.getAll();
+
+      setOrders(updatedOrders);
+      setTables(updatedTables);
+      setCart([]);
+
+      toast("Order placed successfully", "success");
+    } catch (error) {
+      console.error(error);
+      toast("Order failed", "error");
+    } finally {
+      setIsSubmittingOrder(false);
     }
-
-    const subtotal = cart.reduce((acc, mi) => acc + mi.price * mi.quantity, 0);
-    const tax = subtotal * 0.12;
-    const total = subtotal + tax;
-
-    const newOrder: Omit<Order, "id"> = {
-      tableId: selectedTableId || undefined,
-      orderType,
-      items: [...cart],
-      status: "Pending",
-      timestamp: new Date().toISOString(),
-      subtotal,
-      tax,
-      total,
-    };
-
-    const docRef = await orderService.create(newOrder);
-
-    if (orderType === "Dining" && selectedTableId) {
-      await tableService.update(selectedTableId, {
-        status: "Occupied",
-        currentOrderId: docRef.id,
-      });
-    }
-
-    const updatedOrders = await orderService.getAll();
-    const updatedTables = await tableService.getAll();
-
-    setOrders(updatedOrders);
-    setTables(updatedTables);
-
-    setCart([]);
-    toast("Order placed successfully", "success");
   };
 
   const clearTableBill = async (tableId: string) => {
@@ -715,6 +735,7 @@ const App: React.FC = () => {
             upsellSuggestions={upsellSuggestions}
             orderType={orderType}
             setOrderType={setOrderType}
+            isSubmittingOrder={isSubmittingOrder}
           />
         );
       case "waiters":

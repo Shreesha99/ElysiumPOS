@@ -1,57 +1,95 @@
-import React from 'react';
-import { MenuItem } from '../types';
-import { Plus, Zap } from 'lucide-react';
+import React from "react";
+import { Plus, Zap } from "lucide-react";
+import { MenuItem } from "../types";
 
 interface MenuCardProps {
   item: MenuItem;
   onAddToCart: (item: MenuItem) => void;
 }
 
+const getFoodDotColor = (type: string) => {
+  if (type === "Veg") return "bg-emerald-500";
+  if (type === "NonVeg") return "bg-rose-500";
+  if (type === "Egg") return "bg-amber-400";
+  return "bg-zinc-400";
+};
+
 const MenuCard: React.FC<MenuCardProps> = ({ item, onAddToCart }) => {
+  const isLowStock = item.stock < 10;
+
   return (
-    <div 
-      className="group bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-2xl hover:border-indigo-500/50 transition-all duration-300 flex flex-col h-full"
-    >
-      <div className="relative aspect-[16/10] sm:aspect-video lg:aspect-[16/10] overflow-hidden bg-zinc-100 dark:bg-zinc-800 shrink-0">
-        <img 
-          src={item.image} 
-          alt={item.name} 
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-out"
+    <div className="group bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col h-full">
+      {/* Image */}
+      <div className="relative aspect-[16/10] bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+        <img
+          src={item.image}
+          alt={item.name}
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
         />
-        
-        {/* Floating Price */}
-        <div className="absolute top-2.5 right-2.5 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md px-2.5 py-1 rounded-xl shadow-lg border border-zinc-100/50 dark:border-zinc-800/50">
-          <span className="text-zinc-950 dark:text-white font-black text-[10px] sm:text-xs tracking-tight">₹{item.price.toLocaleString()}</span>
+
+        {/* Dietary Dot */}
+        <div className="absolute top-3 left-3 flex items-center gap-2">
+          <div
+            className={`w-3 h-3 rounded-full ${getFoodDotColor(item.foodType)}`}
+          />
         </div>
 
-        {/* Status Chip */}
-        {item.stock < 10 && (
-          <div className="absolute top-2.5 left-2.5 bg-rose-500/90 backdrop-blur-sm px-2 py-1 rounded-lg text-[7px] font-black text-white uppercase tracking-widest shadow-lg flex items-center gap-1 border border-white/10">
-            <Zap size={8} fill="currentColor" /> Limited
+        {/* Price */}
+        <div className="absolute top-3 right-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 px-3 py-1 rounded-lg text-sm font-semibold text-zinc-900 dark:text-white shadow-sm">
+          ₹{item.price.toLocaleString()}
+        </div>
+
+        {/* Low Stock Badge */}
+        {isLowStock && (
+          <div className="absolute bottom-3 left-3 bg-rose-500 text-white text-xs font-semibold px-2 py-1 rounded-md flex items-center gap-1">
+            <Zap size={12} />
+            Limited
           </div>
         )}
       </div>
 
-      <div className="p-3.5 sm:p-5 flex flex-col flex-1 gap-3 sm:gap-4">
-        <div className="min-h-0">
-          <h3 className="font-bold text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 leading-tight group-hover:text-indigo-600 transition-colors truncate">
+      {/* Content */}
+      <div className="p-5 flex flex-col flex-1">
+        <div>
+          <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 leading-tight">
             {item.name}
           </h3>
-          <p className="text-[9px] sm:text-[11px] text-zinc-500 dark:text-zinc-400 line-clamp-2 font-medium leading-relaxed mt-1 sm:mt-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-medium">
+              {item.category}
+            </span>
+          </div>
+
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2 line-clamp-2 leading-relaxed">
             {item.description}
           </p>
         </div>
 
-        <div className="mt-auto">
-          <button 
+        {/* Metadata */}
+        <div className="mt-4 text-xs text-zinc-400">
+          {item.stock > 0 ? (
+            <span>{item.stock} available</span>
+          ) : (
+            <span className="text-rose-500 font-medium">Out of stock</span>
+          )}
+        </div>
+
+        {/* Button */}
+        <div className="mt-4">
+          <button
+            disabled={item.stock === 0}
             onClick={(e) => {
               e.stopPropagation();
               onAddToCart(item);
             }}
-            className="w-full py-2.5 sm:py-3.5 bg-zinc-50 dark:bg-zinc-800 group-hover:bg-indigo-600 text-zinc-500 dark:text-zinc-400 group-hover:text-white rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-[0.97] border border-transparent shadow-sm group-hover:shadow-indigo-500/20"
+            className={`w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition ${
+              item.stock === 0
+                ? "bg-zinc-200 dark:bg-zinc-800 text-zinc-400 cursor-not-allowed"
+                : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
+            }`}
           >
-            <Plus size={14} className="group-hover:rotate-90 transition-transform" /> 
-            <span className="truncate">Add to order</span>
+            <Plus size={16} />
+            Add to Order
           </button>
         </div>
       </div>

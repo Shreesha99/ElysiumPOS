@@ -1,6 +1,12 @@
-export type Category = 'Starters' | 'Mains' | 'Desserts' | 'Drinks' | 'Specials';
-export type OrderType = 'Dining' | 'Takeaway';
-export type StaffStatus = 'Active' | 'On Break' | 'Offline' | 'On Leave';
+export type Category =
+  | "Starters"
+  | "Mains"
+  | "Desserts"
+  | "Drinks"
+  | "Specials";
+export type OrderType = "Dining" | "Takeaway";
+export type StaffStatus = "Active" | "On Break" | "Offline" | "On Leave";
+export type FoodType = "Veg" | "NonVeg" | "Egg";
 
 export interface MenuItem {
   id: string;
@@ -10,6 +16,7 @@ export interface MenuItem {
   category: Category;
   image: string;
   stock: number;
+  foodType: FoodType;
 }
 
 export interface CartItem extends MenuItem {
@@ -38,11 +45,11 @@ export interface Table {
   id: string;
   number: number;
   capacity: number;
-  status: 'Available' | 'Occupied' | 'Reserved' | 'Dirty';
+  status: "Available" | "Occupied" | "Reserved" | "Dirty";
   currentOrderId?: string;
   floorId: string; // reference to Floor
   // Spatial data for 3D floor map (grid units)
-  x: number; 
+  x: number;
   y: number;
   width: number;
   height: number;
@@ -55,7 +62,7 @@ export interface Order {
   orderType: OrderType;
   customerName?: string;
   items: CartItem[];
-  status: 'Pending' | 'In Preparation' | 'Served' | 'Paid';
+  status: "Pending" | "In Preparation" | "Served" | "Paid";
   timestamp: string;
   total: number;
   subtotal: number;
@@ -65,8 +72,8 @@ export interface Order {
 export interface BusinessInsight {
   title: string;
   value: string;
-  trend: 'up' | 'down' | 'neutral';
+  trend: "up" | "down" | "neutral";
   description: string;
-  category: 'Revenue' | 'Operations' | 'Menu' | 'Customer';
-  impact: 'High' | 'Medium' | 'Low';
+  category: "Revenue" | "Operations" | "Menu" | "Customer";
+  impact: "High" | "Medium" | "Low";
 }

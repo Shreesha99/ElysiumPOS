@@ -40,6 +40,16 @@ const DashboardView: React.FC<DashboardViewProps> = ({
     [orders]
   );
 
+  const takeawayOrders = useMemo(
+    () => orders.filter((o) => o.orderType === "Takeaway"),
+    [orders]
+  );
+
+  const diningOrders = useMemo(
+    () => orders.filter((o) => o.orderType === "Dining"),
+    [orders]
+  );
+
   const occupiedTables = useMemo(
     () => tables.filter((t) => t.status === "Occupied").length,
     [tables]
@@ -117,7 +127,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-[1600px] mx-auto px-6 lg:px-12 py-10 space-y-12">
           {/* KPI CARDS */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
             {[
               {
                 label: "Settled Revenue",
@@ -132,6 +142,18 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                 icon: ShoppingBag,
                 color: "text-amber-500",
                 trend: activeOrders.length > 0 ? "Live" : "Idle",
+              },
+              {
+                label: "Takeaway Orders",
+                value: takeawayOrders.length.toString(),
+                icon: ShoppingBag,
+                color: "text-indigo-500",
+                trend:
+                  orders.length > 0
+                    ? `${Math.round(
+                        (takeawayOrders.length / orders.length) * 100
+                      )}%`
+                    : "0%",
               },
               {
                 label: "Avg Order Value",
