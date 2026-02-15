@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { MenuItem, Category } from "@/types";
+import { MenuItem, Category, FoodType } from "@/types";
 import { X, ImageIcon, DollarSign, Package } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -8,7 +8,8 @@ interface Props {
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
   editingItem: MenuItem | null;
   setEditingItem: React.Dispatch<React.SetStateAction<MenuItem | null>>;
-  handleAddDish: (dish: MenuItem) => void;
+  handleAddDish: (dish: Omit<MenuItem, "id">) => void;
+
   handleUpdateDish: (id: string, updates: Partial<MenuItem>) => void;
   CATEGORIES: Category[];
 }
@@ -30,6 +31,7 @@ const InventoryModal: React.FC<Props> = ({
   const [formImage, setFormImage] = useState(
     "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600"
   );
+  const [formFoodType, setFormFoodType] = useState<FoodType>("Veg");
 
   useEffect(() => {
     if (editingItem) {
@@ -39,6 +41,7 @@ const InventoryModal: React.FC<Props> = ({
       setFormStock(editingItem.stock);
       setFormCategory(editingItem.category);
       setFormImage(editingItem.image);
+      setFormFoodType(editingItem.foodType);
     }
   }, [editingItem]);
 
@@ -52,6 +55,7 @@ const InventoryModal: React.FC<Props> = ({
       "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600"
     );
     setEditingItem(null);
+    setFormFoodType("Veg");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -68,13 +72,13 @@ const InventoryModal: React.FC<Props> = ({
       });
     } else {
       handleAddDish({
-        id: `m-${Date.now()}`,
         name: formName,
         description: formDesc,
         price: formPrice,
         stock: formStock,
         category: formCategory,
         image: formImage,
+        foodType: formFoodType,
       });
     }
 
@@ -209,6 +213,22 @@ const InventoryModal: React.FC<Props> = ({
                           {c}
                         </option>
                       ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-zinc-500">
+                      Food Type
+                    </label>
+                    <select
+                      value={formFoodType}
+                      onChange={(e) =>
+                        setFormFoodType(e.target.value as FoodType)
+                      }
+                      className="mt-2 w-full px-4 py-3 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-sm outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white"
+                    >
+                      <option value="Veg">Veg</option>
+                      <option value="NonVeg">Non Veg</option>
+                      <option value="Egg">Egg</option>
                     </select>
                   </div>
 
