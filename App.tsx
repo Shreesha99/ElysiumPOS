@@ -607,12 +607,13 @@ const App: React.FC = () => {
     toast("Asset removed from registry", "info");
   };
 
-  const addWaiter = async (waiter: Waiter) => {
-    await staffService.create(waiter);
+  const addWaiter = async (name: string, email: string, password: string) => {
+    await staffService.create(name, email, password);
+
     const updated = await staffService.getAll();
     setWaiters(updated);
 
-    toast(`Staff ${waiter.name} added`, "success");
+    toast(`Staff ${name} added`, "success");
   };
 
   const updateWaiter = async (id: string, updates: Partial<Waiter>) => {

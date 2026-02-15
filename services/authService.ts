@@ -10,10 +10,6 @@ import { doc, getDoc, setDoc, collection, addDoc } from "firebase/firestore";
 
 import { auth, db } from "./firebase";
 
-/* ======================================================
-   USER TYPE (this matches what App.tsx expects)
-====================================================== */
-
 export interface AppUser {
   id: string;
   email: string;
@@ -22,18 +18,23 @@ export interface AppUser {
   restaurantId: string;
 }
 
-/* ======================================================
-   INTERNAL MAPPER
-====================================================== */
-
+/* =========================
+   INTERNAL USER MAPPER
+========================= */
 const mapUser = async (firebaseUser: FirebaseUser): Promise<AppUser> => {
   const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
 
   if (!userDoc.exists()) {
+    await signOut(auth);
     throw new Error("User profile not found");
   }
 
   const data = userDoc.data();
+
+  if (!data.restaurantId) {
+    await signOut(auth);
+    throw new Error("Restaurant not assigned");
+  }
 
   return {
     id: firebaseUser.uid,
@@ -44,87 +45,59 @@ const mapUser = async (firebaseUser: FirebaseUser): Promise<AppUser> => {
   };
 };
 
-/* ======================================================
-   AUTH SERVICE
-====================================================== */
-
 export const authService = {
-  /* ---------- LOGIN ---------- */
+  /* =========================
+     LOGIN
+  ========================== */
   login: async (email: string, password: string): Promise<AppUser> => {
     const cred = await signInWithEmailAndPassword(auth, email, password);
     return await mapUser(cred.user);
   },
 
-  /* ---------- REGISTER ---------- */
+  /* =========================
+     REGISTER ADMIN ONLY
+  ========================== */
   register: async (
     name: string,
     email: string,
     password: string
   ): Promise<AppUser> => {
-    try {
-      const cred = await createUserWithEmailAndPassword(auth, email, password);
-      const uid = cred.user.uid;
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    const uid = cred.user.uid;
 
-      /* STEP 1: Create temporary user profile */
-      await setDoc(doc(db, "users", uid), {
-        name,
-        email,
-        role: "admin",
-        restaurantId: null,
-        createdAt: new Date(),
-      });
+    // Create user profile
+    await setDoc(doc(db, "users", uid), {
+      name,
+      email,
+      role: "admin",
+      restaurantId: null,
+      createdAt: new Date(),
+    });
 
-      /* STEP 2: Create restaurant */
-      const restaurantRef = await addDoc(collection(db, "restaurants"), {
-        name: `${name}'s Restaurant`,
-        ownerId: uid,
-        createdAt: new Date(),
-      });
+    // Create restaurant
+    const restaurantRef = await addDoc(collection(db, "restaurants"), {
+      name: `${name}'s Restaurant`,
+      ownerId: uid,
+      createdAt: new Date(),
+    });
 
-      const restaurantId = restaurantRef.id;
+    const restaurantId = restaurantRef.id;
 
-      /* STEP 3: Update user with restaurantId */
-      await setDoc(
-        doc(db, "users", uid),
-        {
-          restaurantId,
-        },
-        { merge: true }
-      );
+    await setDoc(doc(db, "users", uid), { restaurantId }, { merge: true });
 
-      return {
-        id: uid,
-        email,
-        name,
-        role: "admin",
-        restaurantId,
-      };
-    } catch (error) {
-      console.error("Registration failed:", error);
-      throw error;
-    }
+    return {
+      id: uid,
+      email,
+      name,
+      role: "admin",
+      restaurantId,
+    };
   },
 
-  /* ---------- LOGOUT ---------- */
   logout: async () => {
     await signOut(auth);
   },
 
-  /* ---------- SYNC CURRENT USER (minimal) ---------- */
-  getCurrentUser: (): AppUser | null => {
-    const firebaseUser = auth.currentUser;
-    if (!firebaseUser) return null;
-
-    return {
-      id: firebaseUser.uid,
-      email: firebaseUser.email || "",
-      name: firebaseUser.displayName || "",
-      role: "admin",
-      restaurantId: "",
-    };
-  },
-
-  /* ---------- REAL AUTH LISTENER ---------- */
   subscribe: (callback: (user: AppUser | null) => void) => {
     return onAuthStateChanged(auth, async (firebaseUser) => {
       if (!firebaseUser) {

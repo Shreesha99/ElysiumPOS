@@ -6,7 +6,7 @@ import AddStaffModal from "./AddStaffModal";
 
 interface StaffViewProps {
   waiters: Waiter[];
-  addWaiter: (waiter: Waiter) => void;
+  addWaiter: (name: string, email: string, password: string) => Promise<void>;
   updateWaiter: (id: string, updates: Partial<Waiter>) => void;
   deleteWaiter: (id: string) => void;
 }

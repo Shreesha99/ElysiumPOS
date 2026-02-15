@@ -57,10 +57,16 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
         toast(`Welcome back, ${user.name}`, "success");
       }
 
-      onAuthSuccess(user);
+      if (user.role === "admin") {
+        onAuthSuccess(user);
+      } else {
+        toast("Staff accounts cannot access admin console", "error");
+        await authService.logout();
+        return;
+      }
     } catch (err: any) {
       const code = err?.code;
-      let message = "Authentication failed";
+      let message = err?.message || "Authentication failed";
 
       if (code === "auth/user-not-found")
         message = "No account found for this email";

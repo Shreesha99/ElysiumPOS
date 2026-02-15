@@ -1,16 +1,22 @@
 import {
   collection,
-  addDoc,
   getDocs,
   doc,
   updateDoc,
   deleteDoc,
+  setDoc,
 } from "firebase/firestore";
-import { db } from "./firebase";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "./firebase";
+
+import { db, auth } from "./firebase";
 import { getRestaurantId } from "./restaurantContext";
 import { Waiter } from "../types";
 
 export const staffService = {
+  /* =========================
+     GET ALL STAFF
+  ========================== */
   async getAll(): Promise<Waiter[]> {
     const restaurantId = await getRestaurantId();
 
@@ -24,15 +30,22 @@ export const staffService = {
     })) as Waiter[];
   },
 
-  async create(waiter: Omit<Waiter, "id">) {
-    const restaurantId = await getRestaurantId();
+  /* =========================
+     CREATE STAFF (AUTH + DB)
+  ========================== */
+  async create(name: string, email: string, password: string): Promise<void> {
+    const createStaffUser = httpsCallable(functions, "createStaffUser");
 
-    return addDoc(
-      collection(db, "restaurants", restaurantId, "waiters"),
-      waiter
-    );
+    await createStaffUser({
+      name,
+      email,
+      password,
+    });
   },
 
+  /* =========================
+     UPDATE STAFF
+  ========================== */
   async update(id: string, updates: Partial<Waiter>) {
     const restaurantId = await getRestaurantId();
 
@@ -42,6 +55,9 @@ export const staffService = {
     );
   },
 
+  /* =========================
+     DELETE STAFF
+  ========================== */
   async delete(id: string) {
     const restaurantId = await getRestaurantId();
 
