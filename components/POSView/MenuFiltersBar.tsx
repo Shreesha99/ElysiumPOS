@@ -50,7 +50,6 @@ const MenuFiltersBar: React.FC<Props> = ({
             disabled={isSubmittingOrder}
             onClick={() => {
               setActiveCategory(cat);
-              setSearchQuery("");
             }}
             className={`px-4 py-2 rounded-lg text-sm border whitespace-nowrap ${
               activeCategory === cat

@@ -9,9 +9,9 @@ import InventoryGrid from "@/components/InventoryView/InventoryGrid";
 import InventoryModal from "@/components/InventoryView/InventoryModal";
 
 interface InventoryViewProps {
-  handleAddDish: (dish: MenuItem) => void;
-  handleUpdateDish: (id: string, updates: Partial<MenuItem>) => void;
-  handleDeleteDish: (id: string) => void;
+  handleAddDish: (dish: Omit<MenuItem, "id">) => Promise<void>;
+  handleUpdateDish: (id: string, updates: Partial<MenuItem>) => Promise<void>;
+  handleDeleteDish: (id: string) => Promise<void>;
   CATEGORIES: Category[];
   menuItems: MenuItem[];
 }
@@ -108,7 +108,10 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         subtitle="Track stock levels, update dishes, and manage pricing"
         rightContent={
           <button
-            onClick={() => setIsFormOpen(true)}
+            onClick={() => {
+              setEditingItem(null);
+              setIsFormOpen(true);
+            }}
             className="flex items-center gap-2 px-4 py-2 rounded-md bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 text-sm"
           >
             <Plus size={16} />
@@ -146,7 +149,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
 
             {/* FILTER BAR */}
             <MenuFiltersBar
-              CATEGORIES={["Starters", ...CATEGORIES]}
+              CATEGORIES={CATEGORIES}
               activeCategory={activeCategory}
               setActiveCategory={setActiveCategory}
               searchQuery={search}
@@ -166,6 +169,9 @@ const InventoryView: React.FC<InventoryViewProps> = ({
       {/* GRID */}
       <InventoryGrid
         items={filteredItems}
+        searchQuery={search}
+        activeCategory={activeCategory}
+        foodFilter={foodFilter}
         openEditForm={(item) => {
           setEditingItem(item);
           setIsFormOpen(true);

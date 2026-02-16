@@ -3,19 +3,38 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Search } from "lucide-react";
 import MenuCard from "@/components/MenuCard";
 import { MenuItem } from "@/types";
+import EmptyState from "../ui/EmptyState";
 
 interface Props {
   items: MenuItem[];
   searchQuery: string;
+  activeCategory: string;
+  foodFilter: "All" | "Veg" | "NonVeg" | "Egg";
   onAddToCart: (item: MenuItem) => void;
 }
 
 const MenuGridSection: React.FC<Props> = ({
   items,
   searchQuery,
+  activeCategory = "Menu",
+  foodFilter = "All",
   onAddToCart,
 }) => {
-  const isSearching = searchQuery.trim() !== "";
+  const trimmedQuery = searchQuery.trim();
+  const isSearching = trimmedQuery !== "";
+
+  let emptyTitle = "";
+  const safeCategory = activeCategory ?? "this category";
+  const safeFoodFilter = foodFilter ?? "All";
+  if (isSearching && safeFoodFilter !== "All") {
+    emptyTitle = `No ${safeFoodFilter} results for "${trimmedQuery}" in ${safeCategory}`;
+  } else if (isSearching) {
+    emptyTitle = `No results for "${trimmedQuery}"`;
+  } else if (safeFoodFilter !== "All") {
+    emptyTitle = `No ${safeFoodFilter} items in ${safeCategory}`;
+  } else {
+    emptyTitle = `No items in ${safeCategory}`;
+  }
 
   return (
     <div className="w-full">
@@ -41,40 +60,15 @@ const MenuGridSection: React.FC<Props> = ({
             </AnimatePresence>
           </motion.div>
         ) : (
-          <motion.div
-            key="empty"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="h-[400px] flex flex-col items-center justify-center text-center px-6"
-          >
-            <div className="w-16 h-16 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
-              <Search size={28} className="text-zinc-400" />
-            </div>
-
-            {isSearching ? (
-              <>
-                <p className="text-sm font-semibold mt-6 dark:text-white">
-                  No results found for
-                </p>
-                <p className="text-sm font-medium text-indigo-600 mt-1">
-                  "{searchQuery}"
-                </p>
-                <p className="text-xs text-zinc-400 mt-3 max-w-[260px]">
-                  Try a different keyword or adjust your filters.
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="text-sm font-semibold mt-6 dark:text-white">
-                  No items available
-                </p>
-                <p className="text-xs text-zinc-400 mt-2">
-                  This category currently has no menu items.
-                </p>
-              </>
-            )}
-          </motion.div>
+          <EmptyState
+            icon={Search}
+            title={emptyTitle}
+            description={
+              !isSearching
+                ? "Adjust filters or register new assets."
+                : undefined
+            }
+          />
         )}
       </AnimatePresence>
     </div>

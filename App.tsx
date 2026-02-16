@@ -112,6 +112,20 @@ const App: React.FC = () => {
   }, [activeOrderId, orders]);
 
   useEffect(() => {
+    if (!selectedTableId) return;
+
+    const table = tables.find((t) => t.id === selectedTableId);
+    if (!table) return;
+
+    if (table.currentOrderId) {
+      setActiveOrderId(table.currentOrderId);
+    } else {
+      setActiveOrderId(null);
+      setCart([]);
+    }
+  }, [selectedTableId, tables]);
+
+  useEffect(() => {
     if (!user) return;
 
     const loadRestaurantData = async () => {
@@ -404,8 +418,34 @@ const App: React.FC = () => {
       };
 
       if (activeOrderId) {
-        // UPDATE EXISTING ORDER
-        await orderService.update(activeOrderId, orderPayload);
+        const existingOrder = orders.find((o) => o.id === activeOrderId);
+        if (existingOrder) {
+          const mergedItems = [...existingOrder.items];
+
+          orderPayload.items.forEach((newItem) => {
+            const existing = mergedItems.find((i) => i.id === newItem.id);
+            if (existing) {
+              existing.quantity += newItem.quantity;
+            } else {
+              mergedItems.push(newItem);
+            }
+          });
+
+          const newSubtotal = mergedItems.reduce(
+            (acc, mi) => acc + mi.price * mi.quantity,
+            0
+          );
+          const newTax = newSubtotal * 0.12;
+          const newTotal = newSubtotal + newTax;
+
+          await orderService.update(activeOrderId, {
+            ...orderPayload,
+            items: mergedItems,
+            subtotal: newSubtotal,
+            tax: newTax,
+            total: newTotal,
+          });
+        }
       } else {
         // CREATE NEW ORDER
         const docRef = await orderService.create(orderPayload);
@@ -426,13 +466,11 @@ const App: React.FC = () => {
       setOrders(updatedOrders);
       setTables(updatedTables);
 
+      setCart([]);
+
+      // For takeaway reset session completely
       if (orderType === "Takeaway") {
-        // Takeaway ends immediately
-        setCart([]);
         setActiveOrderId(null);
-      } else {
-        // Dining order stays active
-        setCart(orderPayload.items);
       }
 
       toast("Order saved successfully", "success");

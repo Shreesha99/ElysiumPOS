@@ -632,14 +632,12 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
               animate={isMobile ? { y: 0 } : { x: 0, opacity: 1 }}
               exit={isMobile ? { y: "100%" } : { x: 100, opacity: 0 }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className={`fixed lg:absolute right-0 bottom-0 lg:right-8 lg:top-8 lg:bottom-8 w-full lg:w-[400px] bg-white/95 dark:bg-zinc-950/90 backdrop-blur-xl border-t lg:border border-zinc-200 dark:border-zinc-800
-              lg:rounded-[3rem] rounded-t-[2.5rem] p-6 sm:p-12 shadow-2xl z-[70] flex flex-col gap-8 max-h-[90vh] lg:max-h-none`}
+              className={`fixed lg:absolute right-0 bottom-0 lg:right-8 lg:top-8 lg:bottom-8 w-full lg:w-[420px] bg-white dark:bg-zinc-950 border-t lg:border border-zinc-200 dark:border-zinc-800
+              lg:rounded-2xl rounded-t-2xl p-6 shadow-xl z-[70] flex flex-col gap-6 max-h-[90vh] lg:max-h-none`}
             >
-              <div className="h-1.5 w-12 bg-zinc-200 dark:bg-zinc-800 rounded-full mx-auto mb-4 lg:hidden shrink-0" />
-
               <div className="flex items-center justify-between shrink-0">
                 <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-1">
+                  <p className="text-xs font-medium text-zinc-500 mb-1">
                     {isEditMode ? "Node Config" : "Live Status"}
                   </p>
                   <div className="flex items-center gap-3">
@@ -660,7 +658,7 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                         />
                       </div>
                     ) : (
-                      <h3 className="text-2xl sm:text-4xl font-black uppercase tracking-tighter truncate">
+                      <h3 className="text-xl sm:text-2xl font-semibold tracking-tight truncate">
                         Table T{selectedTable.number}
                       </h3>
                     )}
@@ -726,7 +724,7 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                 ) : (
                   <div className="space-y-8">
                     {/* SESSION SUMMARY CARD */}
-                    <div className="p-8 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl shadow-sm">
+                    <div className="p-5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900">
                       <div className="flex items-center justify-between mb-6">
                         <div>
                           <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
@@ -759,7 +757,7 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                               <p className="text-sm text-zinc-500 dark:text-zinc-400">
                                 Current Total
                               </p>
-                              <p className="text-4xl font-semibold text-indigo-600 dark:text-indigo-400 mt-1">
+                              <p className="text-2xl font-semibold text-indigo-600 dark:text-indigo-400 mt-1">
                                 ₹{activeTableOrder.total.toLocaleString()}
                               </p>
                             </div>
@@ -798,7 +796,7 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                         <>
                           <button
                             onClick={() => clearTableBill(selectedTable.id)}
-                            className="w-full py-4 rounded-2xl bg-indigo-600/90 hover:bg-indigo-600 text-white font-semibold transition shadow-md hover:shadow-lg"
+                            className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition"
                           >
                             Settle Bill
                           </button>
@@ -816,14 +814,14 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                               setActiveOrderId(activeOrder.id);
                               setActiveTab("pos");
                             }}
-                            className="w-full py-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-white font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
+                            className="w-full py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-white font-medium hover:bg-zinc-100 dark:hover:bg-zinc-900 transition"
                           >
                             Add Items
                           </button>
 
                           <button
                             onClick={() => voidTableOrder(selectedTable.id)}
-                            className="w-full py-4 rounded-2xl bg-rose-50 dark:bg-rose-900/10 text-rose-600 border border-rose-100 dark:border-rose-900/40 hover:bg-rose-100 dark:hover:bg-rose-900/20 transition font-medium"
+                            className="w-full py-3 rounded-xl border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition font-medium"
                           >
                             Void Order
                           </button>

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { MenuItem } from "@/types";
 import {
   Edit3,
@@ -7,14 +7,15 @@ import {
   Minus,
   Plus,
   BarChart2,
+  Loader2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface Props {
   item: MenuItem;
   openEditForm: (item: MenuItem) => void;
-  handleDeleteDish: (id: string) => void;
-  handleUpdateDish: (id: string, updates: Partial<MenuItem>) => void;
+  handleDeleteDish: (id: string) => Promise<void>;
+  handleUpdateDish: (id: string, updates: Partial<MenuItem>) => Promise<void>;
 }
 
 const InventoryCard: React.FC<Props> = ({
@@ -23,16 +24,42 @@ const InventoryCard: React.FC<Props> = ({
   handleDeleteDish,
   handleUpdateDish,
 }) => {
+  const [stockLoading, setStockLoading] = useState<"inc" | "dec" | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const isMutating = isDeleting || stockLoading !== null;
+
+  const updateStock = async (type: "inc" | "dec") => {
+    try {
+      setStockLoading(type);
+
+      const newStock =
+        type === "inc" ? item.stock + 1 : Math.max(0, item.stock - 1);
+
+      await handleUpdateDish(item.id, { stock: newStock });
+    } finally {
+      setStockLoading(null);
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      setIsDeleting(true);
+      await handleDeleteDish(item.id);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <motion.div
       layout
       initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
+      animate={{ opacity: isDeleting ? 0.5 : 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.25 }}
       className="group bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden"
     >
-      {/* Image Section */}
+      {/* Image */}
       <div className="relative h-44 bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
         <img
           src={item.image}
@@ -48,17 +75,23 @@ const InventoryCard: React.FC<Props> = ({
         {/* Action Buttons */}
         <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
+            disabled={isMutating}
             onClick={() => openEditForm(item)}
-            className="p-2 rounded-lg bg-white dark:bg-zinc-800 shadow hover:text-indigo-600 transition"
+            className="p-2 rounded-lg bg-white dark:bg-zinc-800 shadow hover:text-indigo-600 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
           >
             <Edit3 size={16} />
           </button>
 
           <button
-            onClick={() => handleDeleteDish(item.id)}
-            className="p-2 rounded-lg bg-white dark:bg-zinc-800 shadow text-rose-500 hover:bg-rose-500 hover:text-white transition"
+            disabled={isMutating}
+            onClick={handleDelete}
+            className="p-2 rounded-lg bg-white dark:bg-zinc-800 shadow text-rose-500 hover:bg-rose-500 hover:text-white transition disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none flex items-center justify-center"
           >
-            <Trash2 size={16} />
+            {isDeleting ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Trash2 size={16} />
+            )}
           </button>
         </div>
 
@@ -73,7 +106,6 @@ const InventoryCard: React.FC<Props> = ({
 
       {/* Content */}
       <div className="p-6 flex flex-col flex-1">
-        {/* Title & Price */}
         <div className="flex justify-between items-start mb-3">
           <div className="min-w-0">
             <h3 className="text-lg font-semibold dark:text-white truncate">
@@ -89,7 +121,6 @@ const InventoryCard: React.FC<Props> = ({
           </span>
         </div>
 
-        {/* Description */}
         <p className="text-sm text-zinc-500 dark:text-zinc-400 line-clamp-2 mb-6">
           {item.description}
         </p>
@@ -113,17 +144,18 @@ const InventoryCard: React.FC<Props> = ({
             </span>
           </div>
 
-          {/* Stock Controls */}
+          {/* Controls */}
           <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1">
             <button
-              onClick={() =>
-                handleUpdateDish(item.id, {
-                  stock: Math.max(0, item.stock - 1),
-                })
-              }
-              className="flex-1 py-2 rounded-lg hover:bg-rose-500 hover:text-white transition flex items-center justify-center"
+              disabled={isMutating}
+              onClick={() => updateStock("dec")}
+              className="flex-1 py-2 rounded-lg hover:bg-rose-500 hover:text-white transition flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
             >
-              <Minus size={14} />
+              {stockLoading === "dec" ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Minus size={14} />
+              )}
             </button>
 
             <div className="px-4 text-xs font-semibold text-zinc-500">
@@ -131,14 +163,15 @@ const InventoryCard: React.FC<Props> = ({
             </div>
 
             <button
-              onClick={() =>
-                handleUpdateDish(item.id, {
-                  stock: item.stock + 1,
-                })
-              }
-              className="flex-1 py-2 rounded-lg hover:bg-indigo-600 hover:text-white transition flex items-center justify-center"
+              disabled={isMutating}
+              onClick={() => updateStock("inc")}
+              className="flex-1 py-2 rounded-lg hover:bg-indigo-600 hover:text-white transition flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
             >
-              <Plus size={14} />
+              {stockLoading === "inc" ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Plus size={14} />
+              )}
             </button>
           </div>
         </div>

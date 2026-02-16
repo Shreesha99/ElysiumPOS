@@ -232,6 +232,8 @@ const POSView: React.FC<POSViewProps> = ({
             <MenuGridSection
               items={processedItems}
               searchQuery={searchQuery}
+              activeCategory={activeCategory}
+              foodFilter={foodFilter}
               onAddToCart={addToCart}
             />
           </div>
