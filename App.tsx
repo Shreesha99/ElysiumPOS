@@ -320,8 +320,6 @@ const App: React.FC = () => {
   };
 
   const enterEditMode = () => {
-    // if (viewMode !== "3d") setViewMode("3d");
-
     const floorCopy = JSON.parse(JSON.stringify(floors));
     const tableCopy = JSON.parse(JSON.stringify(tables));
 
@@ -330,6 +328,11 @@ const App: React.FC = () => {
 
     setHistory([{ floors: floorCopy, tables: tableCopy }]);
     setHistoryIndex(0);
+
+    // 🔥 Ensure active floor exists
+    if (floorCopy.length > 0) {
+      setActiveFloorId(floorCopy[0].id);
+    }
 
     setIsEditMode(true);
     toast("Spatial editor active", "info");
@@ -628,13 +631,50 @@ const App: React.FC = () => {
     toast("Floor removed from layout", "info");
   };
 
-  const addNewTable = () => {
-    if (!isEditMode) return;
+  const addNewTableToFloor = (floorId: string): string | null => {
+    if (!isEditMode) return null;
 
-    let floorIdToUse = activeFloorId;
+    const floor = draftFloors.find((f) => f.id === floorId);
+    if (!floor) return null;
+
+    const tablesOnFloor = draftTables.filter((t) => t.floorId === floorId);
+
+    const nextNumber =
+      tablesOnFloor.length > 0
+        ? Math.max(...tablesOnFloor.map((t) => t.number)) + 1
+        : 1;
+
+    const newId = `temp-${Date.now()}`;
+
+    const newTable: Table = {
+      id: newId,
+      number: nextNumber,
+      capacity: 4,
+      status: "Available",
+      x: Math.floor(floor.width / 2) - 1,
+      y: Math.floor(floor.height / 2) - 1,
+      width: 3,
+      height: 3,
+      rotation: 0,
+      floorId: floorId,
+    };
+
+    const updatedTables = [...draftTables, newTable];
+
+    setDraftTables(updatedTables);
+    pushToHistory(draftFloors, updatedTables);
+
+    return newId;
+  };
+
+  const addNewTable = (): string | null => {
+    if (!isEditMode) return null;
+
+    let floorIdToUse =
+      activeFloorId || (draftFloors.length > 0 ? draftFloors[0].id : "");
+
     let updatedFloors = [...draftFloors];
 
-    // 1️⃣ If no floors exist at all → auto create one
     if (updatedFloors.length === 0) {
       const newFloor: Floor = {
         id: `temp-${Date.now()}`,
@@ -650,15 +690,13 @@ const App: React.FC = () => {
       floorIdToUse = newFloor.id;
     }
 
-    // 2️⃣ If floors exist but none selected → select first
     if (!floorIdToUse && updatedFloors.length > 0) {
       floorIdToUse = updatedFloors[0].id;
       setActiveFloorId(floorIdToUse);
     }
 
-    if (!floorIdToUse) return;
+    if (!floorIdToUse) return null;
 
-    // 3️⃣ Generate number per floor
     const tablesOnFloor = draftTables.filter((t) => t.floorId === floorIdToUse);
 
     const nextNumber =
@@ -666,8 +704,10 @@ const App: React.FC = () => {
         ? Math.max(...tablesOnFloor.map((t) => t.number)) + 1
         : 1;
 
+    const newId = `temp-${Date.now()}`;
+
     const newTable: Table = {
-      id: `temp-${Date.now()}`,
+      id: newId,
       number: nextNumber,
       capacity: 4,
       status: "Available",
@@ -683,6 +723,8 @@ const App: React.FC = () => {
 
     setDraftTables(updatedTables);
     pushToHistory(updatedFloors, updatedTables);
+
+    return newId;
   };
 
   const deleteDraftTable = (id: string) => {
@@ -797,7 +839,7 @@ const App: React.FC = () => {
             saveLoading={isSavingLayout}
             addNewFloor={addNewFloor}
             deleteFloor={deleteFloor}
-            addNewTable={addNewTable}
+            addNewTableToFloor={addNewTableToFloor}
             deleteDraftTable={deleteDraftTable}
             selectedTableId={selectedTableId}
             setSelectedTableId={setSelectedTableId}

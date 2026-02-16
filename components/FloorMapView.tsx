@@ -18,6 +18,8 @@ import {
   Undo2Icon,
   Redo2Icon,
   Building,
+  ChevronRight,
+  ChevronDown,
 } from "lucide-react";
 import { Table, Floor, Order } from "@/types";
 import SectionHeader from "@/components/ui/SectionHeader";
@@ -40,7 +42,7 @@ interface FloorMapViewProps {
   saveEdit: () => void;
   addNewFloor: () => void;
   deleteFloor: (id: string) => void;
-  addNewTable: () => void;
+  addNewTableToFloor: (floorId: string) => string | null;
   deleteDraftTable: (id: string) => void;
   selectedTableId: string | null;
   setSelectedTableId: (id: string | null) => void;
@@ -79,7 +81,8 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
   saveEdit,
   addNewFloor,
   deleteFloor,
-  addNewTable,
+  addNewTableToFloor,
+
   deleteDraftTable,
   selectedTableId,
   setSelectedTableId,
@@ -110,6 +113,8 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
 
   // If mobile and in 3D mode, force 2D or show restriction
   const show3DRestriction = isMobile && viewMode === "3d";
+  const [isResizingWidth, setIsResizingWidth] = useState(false);
+  const [isResizingHeight, setIsResizingHeight] = useState(false);
 
   const filteredTables = activeTables
     .filter((t) => t.floorId === activeFloorId)
@@ -131,6 +136,7 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
     return (
       <div
         key={table.id}
+        className="table-node"
         onClick={(e) => {
           e.stopPropagation();
           setSelectedTableId(table.id);
@@ -273,6 +279,11 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
         ))}
       </div>
     );
+  };
+
+  const resetCamera = () => {
+    setMapRotation((prev) => 0);
+    setMapPitch((prev) => 10);
   };
 
   return (
@@ -498,6 +509,76 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                 ▼
               </button>
             </div>
+            <div className="absolute top-8 right-8 z-30 flex flex-col items-end gap-3">
+              <button
+                onClick={resetCamera}
+                className="p-3 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-xl text-zinc-400 hover:text-indigo-600 hover:border-indigo-400 transition"
+              >
+                <RotateCcw size={20} />
+              </button>
+
+              <div className="px-4 py-3 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-lg text-xs font-mono text-zinc-600 dark:text-zinc-300 space-y-2 min-w-[200px]">
+                {/* ORIENTATION */}
+                <div className="flex justify-between gap-6">
+                  <span>Rotation</span>
+                  <span className="font-semibold text-indigo-600">
+                    {((mapRotation % 360) + 360) % 360}°
+                  </span>
+                </div>
+
+                <div className="flex justify-between gap-6">
+                  <span>Pitch</span>
+                  <span className="font-semibold text-indigo-600">
+                    {mapPitch}°
+                  </span>
+                </div>
+
+                <div className="border-t border-zinc-200 dark:border-zinc-800 my-1" />
+
+                {/* DIMENSIONS */}
+                <div className="flex justify-between gap-6">
+                  <span>Width</span>
+                  <span className="font-semibold text-indigo-600">
+                    {currentFloor?.width ?? 0}u
+                  </span>
+                </div>
+
+                <div className="flex justify-between gap-6">
+                  <span>Height</span>
+                  <span className="font-semibold text-indigo-600">
+                    {currentFloor?.height ?? 0}u
+                  </span>
+                </div>
+
+                <div className="flex justify-between gap-6 text-zinc-400 text-[11px]">
+                  <span>Pixels</span>
+                  <span>
+                    {(currentFloor?.width ?? 0) * GRID_SIZE} ×{" "}
+                    {(currentFloor?.height ?? 0) * GRID_SIZE}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {isEditMode && currentFloor && (
+              <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[50]">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!currentFloor) return;
+
+                    const newId = addNewTableToFloor(currentFloor.id);
+                    if (!newId) return;
+
+                    setSelectedTableId(newId);
+                  }}
+                  className="w-14 h-14 rounded-2xl bg-indigo-600 text-white shadow-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
+                >
+                  <Plus size={22} />
+                </button>
+              </div>
+            )}
+
             <motion.div
               className="relative w-full h-full flex items-center justify-center"
               animate={{ rotateX: mapPitch, rotateZ: mapRotation }}
@@ -505,13 +586,14 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
               style={{ perspective: "4000px", transformStyle: "preserve-3d" }}
             >
               <div
-                className="relative bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-2xl"
+                className={`relative bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-2xl 
+              
+                  `}
                 style={{
                   width: `${(currentFloor?.width || 20) * GRID_SIZE}px`,
                   height: `${(currentFloor?.height || 20) * GRID_SIZE}px`,
                   transformStyle: "preserve-3d",
                 }}
-                onClick={() => setSelectedTableId(null)}
               >
                 <div
                   className="absolute inset-0 grid opacity-[0.04] pointer-events-none"
@@ -535,6 +617,127 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                 {activeTables
                   .filter((t) => t.floorId === activeFloorId)
                   .map((t) => renderTableNode(t))}
+                {isEditMode && currentFloor && (
+                  <>
+                    {/* RIGHT EDGE RESIZER */}
+                    <div
+                      className="absolute top-0 right-0 h-full w-12 flex items-center justify-center cursor-e-resize z-[100]"
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+
+                        setIsResizingWidth(true);
+
+                        const startX = e.clientX;
+                        const startWidth = currentFloor.width;
+                        const move = (mv: MouseEvent) => {
+                          const dx = Math.round(
+                            (mv.clientX - startX) / GRID_SIZE
+                          );
+                          let proposedWidth = Math.max(5, startWidth + dx);
+
+                          // 🔒 Prevent shrinking below any table
+                          const maxTableRight = Math.max(
+                            ...activeTables
+                              .filter((t) => t.floorId === currentFloor.id)
+                              .map((t) => t.x + t.width),
+                            0
+                          );
+
+                          if (proposedWidth < maxTableRight) {
+                            proposedWidth = maxTableRight;
+                          }
+
+                          updateDraftFloor(currentFloor.id, {
+                            width: proposedWidth,
+                          });
+                        };
+
+                        const up = () => {
+                          setIsResizingWidth(false);
+                          window.removeEventListener("mousemove", move);
+                          window.removeEventListener("mouseup", up);
+                        };
+
+                        window.addEventListener("mousemove", move);
+                        window.addEventListener("mouseup", up);
+                      }}
+                    >
+                      <div
+                        className={`w-10 h-20 flex items-center justify-center rounded-2xl transition-all shadow-xl
+      ${
+        isResizingWidth
+          ? "bg-indigo-600 text-white shadow-2xl scale-95"
+          : "bg-white dark:bg-zinc-900 text-indigo-600 border border-zinc-200 dark:border-zinc-700 hover:bg-indigo-50 dark:hover:bg-zinc-800"
+      }`}
+                        style={{
+                          marginRight: "6px", // floating offset
+                        }}
+                      >
+                        <ChevronRight size={22} />
+                      </div>
+                    </div>
+
+                    {/* BOTTOM EDGE RESIZER */}
+                    <div
+                      className="absolute bottom-0 left-0 w-full h-12 flex items-center justify-center cursor-s-resize z-[100]"
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+
+                        setIsResizingHeight(true);
+
+                        const startY = e.clientY;
+                        const startHeight = currentFloor.height;
+
+                        const move = (mv: MouseEvent) => {
+                          const dy = Math.round(
+                            (mv.clientY - startY) / GRID_SIZE
+                          );
+                          let proposedHeight = Math.max(5, startHeight + dy);
+
+                          const maxTableBottom = Math.max(
+                            ...activeTables
+                              .filter((t) => t.floorId === currentFloor.id)
+                              .map((t) => t.y + t.height),
+                            0
+                          );
+
+                          if (proposedHeight < maxTableBottom) {
+                            proposedHeight = maxTableBottom;
+                          }
+
+                          updateDraftFloor(currentFloor.id, {
+                            height: proposedHeight,
+                          });
+                        };
+
+                        const up = () => {
+                          setIsResizingHeight(false);
+                          window.removeEventListener("mousemove", move);
+                          window.removeEventListener("mouseup", up);
+                        };
+
+                        window.addEventListener("mousemove", move);
+                        window.addEventListener("mouseup", up);
+                      }}
+                    >
+                      <div
+                        className={`h-10 w-20 flex items-center justify-center rounded-2xl transition-all shadow-xl
+      ${
+        isResizingHeight
+          ? "bg-indigo-600 text-white shadow-2xl scale-95"
+          : "bg-white dark:bg-zinc-900 text-indigo-600 border border-zinc-200 dark:border-zinc-700 hover:bg-indigo-50 dark:hover:bg-zinc-800"
+      }`}
+                        style={{
+                          marginBottom: "6px", // floating offset
+                        }}
+                      >
+                        <ChevronDown size={22} />
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </motion.div>
           </div>
@@ -589,14 +792,17 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                     </motion.button>
                   );
                 })}
-                {isEditMode && (
+                {isEditMode && currentFloor && (
                   <button
-                    onClick={addNewTable}
+                    onClick={() => {
+                      const newId = addNewTableToFloor(currentFloor.id);
+                      if (newId) setSelectedTableId(newId);
+                    }}
                     className="aspect-square border-4 border-dashed border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] flex flex-col items-center justify-center gap-2 text-zinc-300 hover:text-indigo-500 hover:border-indigo-500 transition-all"
                   >
                     <Plus size={32} />
                     <span className="text-[10px] font-black uppercase tracking-widest">
-                      New Node
+                      New Table
                     </span>
                   </button>
                 )}
@@ -638,7 +844,7 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
               <div className="flex items-center justify-between shrink-0">
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-medium text-zinc-500 mb-1">
-                    {isEditMode ? "Node Config" : "Live Status"}
+                    {isEditMode ? "Floor Config" : "Live Status"}
                   </p>
                   <div className="flex items-center gap-3">
                     {isEditMode ? (
@@ -679,7 +885,7 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                       <Users size={32} className="text-indigo-500" />
                       <div className="space-y-1">
                         <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">
-                          Node Capacity
+                          Table Capacity
                         </p>
                         <div className="flex items-center gap-4">
                           <button
@@ -847,7 +1053,7 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                   onClick={() => deleteDraftTable(selectedTable.id)}
                   className="shrink-0 w-full py-4 bg-rose-50 dark:bg-rose-900/10 text-rose-500 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-rose-100 dark:border-rose-900/50"
                 >
-                  Purge Node
+                  Delete Table
                 </button>
               )}
             </motion.div>
