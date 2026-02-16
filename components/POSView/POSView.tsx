@@ -17,10 +17,13 @@ import CartPanel from "../CartPanel";
 import { MenuItem, Category, CartItem, Table, OrderType } from "../../types";
 import MenuFiltersBar from "./MenuFiltersBar";
 import SectionHeader from "@/components/ui/SectionHeader";
+import GlobalProcessingOverlay from "../ui/GlobalProcessingOverlay";
 
 interface POSViewProps {
   selectedTable: Table | undefined;
   setSelectedTableId: (id: string | null) => void;
+  activeOrderId: string | null;
+  setActiveOrderId: (id: string | null) => void;
   searchQuery: string;
   setSearchQuery: (val: string) => void;
   CATEGORIES: Category[];
@@ -343,23 +346,11 @@ const POSView: React.FC<POSViewProps> = ({
           </>
         )}
       </AnimatePresence>
-
-      {/* GLOBAL PROCESSING OVERLAY */}
-      {isSubmittingOrder && (
-        <div className="absolute inset-0 z-[200] bg-white/50 dark:bg-zinc-950/50 backdrop-blur-sm flex items-center justify-center">
-          <div className="flex items-center gap-3 bg-white dark:bg-zinc-900 px-6 py-4 rounded-lg shadow-lg border border-zinc-200 dark:border-zinc-800">
-            <Loader2 size={20} className="animate-spin text-indigo-600" />
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold dark:text-white">
-                Finalizing Order
-              </span>
-              <span className="text-xs text-zinc-400">
-                Please wait while we confirm the transaction
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
+      <GlobalProcessingOverlay
+        isVisible={isSubmittingOrder}
+        title="Finalizing Order"
+        subtitle="Please wait while we confirm the transaction"
+      />
     </div>
   );
 };

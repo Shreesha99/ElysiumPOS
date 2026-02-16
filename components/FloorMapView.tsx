@@ -21,10 +21,12 @@ import {
 } from "lucide-react";
 import { Table, Floor, Order } from "../types";
 import SectionHeader from "./ui/SectionHeader";
+import GlobalProcessingOverlay from "./ui/GlobalProcessingOverlay";
 
 const GRID_SIZE = 40;
 
 interface FloorMapViewProps {
+  isProcessingTableAction: boolean;
   isMobile: boolean;
   activeFloors: Floor[];
   activeTables: Table[];
@@ -59,6 +61,8 @@ interface FloorMapViewProps {
   onRedo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  activeOrderId: string | null;
+  setActiveOrderId: (id: string | null) => void;
 }
 
 const FloorMapView: React.FC<FloorMapViewProps> = ({
@@ -96,6 +100,9 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
   onRedo,
   canUndo,
   canRedo,
+  activeOrderId,
+  setActiveOrderId,
+  isProcessingTableAction,
 }) => {
   const [tableSearch, setTableSearch] = useState("");
   const currentFloor = activeFloors.find((f) => f.id === activeFloorId);
@@ -303,7 +310,6 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
             </div>
 
             {!isEditMode ? (
-              viewMode === "3d" &&
               !isMobile && (
                 <button
                   onClick={enterEditMode}
@@ -315,6 +321,24 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
               )
             ) : (
               <>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={onUndo}
+                    disabled={!canUndo}
+                    className="p-2 rounded-lg border border-zinc-300 dark:border-zinc-700 disabled:opacity-40"
+                  >
+                    <Undo2Icon size={16} />
+                  </button>
+
+                  <button
+                    onClick={onRedo}
+                    disabled={!canRedo}
+                    className="p-2 rounded-lg border border-zinc-300 dark:border-zinc-700 disabled:opacity-40"
+                  >
+                    <Redo2Icon size={16} />
+                  </button>
+                </div>
+
                 <button
                   onClick={cancelEdit}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 text-sm transition"
@@ -350,7 +374,14 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
         bottomContent={
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
             {activeFloors.map((f) => (
-              <div key={f.id} className="shrink-0">
+              <div
+                key={f.id}
+                className={`shrink-0 flex items-center gap-2 px-3 py-2 rounded-lg border transition ${
+                  activeFloorId === f.id
+                    ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent"
+                    : "bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 border-zinc-200 dark:border-zinc-800"
+                }`}
+              >
                 {editingFloorId === f.id ? (
                   <input
                     autoFocus
@@ -362,19 +393,42 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                     onKeyDown={(e) => {
                       if (e.key === "Enter") setEditingFloorId(null);
                     }}
-                    className="px-4 py-2 rounded-lg text-sm bg-white dark:bg-zinc-900 border border-indigo-500 outline-none w-28 focus:ring-2 focus:ring-indigo-500"
+                    className="bg-transparent outline-none text-sm font-medium w-24"
                   />
                 ) : (
                   <button
                     onClick={() => setActiveFloorId(f.id)}
-                    className={`px-4 py-2 rounded-lg text-sm transition border whitespace-nowrap ${
-                      activeFloorId === f.id
-                        ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 border-transparent"
-                        : "bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                    }`}
+                    className="text-sm font-medium whitespace-nowrap"
                   >
                     {f.name}
                   </button>
+                )}
+
+                {isEditMode && (
+                  <>
+                    {editingFloorId === f.id ? (
+                      <button
+                        onClick={() => setEditingFloorId(null)}
+                        className="p-1 text-emerald-600 hover:scale-110 transition"
+                      >
+                        <CheckCircle2 size={16} />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setEditingFloorId(f.id)}
+                        className="p-1 opacity-60 hover:opacity-100 transition"
+                      >
+                        <Settings2 size={14} />
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => deleteFloor(f.id)}
+                      className="p-1 text-rose-500 opacity-70 hover:opacity-100 transition"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </>
                 )}
               </div>
             ))}
@@ -672,7 +726,7 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                 ) : (
                   <div className="space-y-8">
                     {/* SESSION SUMMARY CARD */}
-                    <div className="p-8 rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
+                    <div className="p-8 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl shadow-sm">
                       <div className="flex items-center justify-between mb-6">
                         <div>
                           <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
@@ -739,29 +793,37 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                     </div>
 
                     {/* ACTIONS */}
-                    <div className="space-y-3">
+                    <div className="space-y-4 pt-2">
                       {selectedTable.status === "Occupied" ? (
                         <>
                           <button
                             onClick={() => clearTableBill(selectedTable.id)}
-                            className="w-full py-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition"
+                            className="w-full py-4 rounded-2xl bg-indigo-600/90 hover:bg-indigo-600 text-white font-semibold transition shadow-md hover:shadow-lg"
                           >
                             Settle Bill
                           </button>
 
                           <button
                             onClick={() => {
+                              const activeOrder = orders.find(
+                                (o) =>
+                                  o.tableId === selectedTable.id &&
+                                  o.status !== "Paid"
+                              );
+
+                              if (!activeOrder) return;
+
+                              setActiveOrderId(activeOrder.id);
                               setActiveTab("pos");
-                              setSelectedTableId(selectedTable.id);
                             }}
-                            className="w-full py-4 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-white font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+                            className="w-full py-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-white font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800 transition"
                           >
-                            Add More Items
+                            Add Items
                           </button>
 
                           <button
                             onClick={() => voidTableOrder(selectedTable.id)}
-                            className="w-full py-4 rounded-xl text-rose-600 border border-rose-200 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition"
+                            className="w-full py-4 rounded-2xl bg-rose-50 dark:bg-rose-900/10 text-rose-600 border border-rose-100 dark:border-rose-900/40 hover:bg-rose-100 dark:hover:bg-rose-900/20 transition font-medium"
                           >
                             Void Order
                           </button>
@@ -772,9 +834,9 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                             setActiveTab("pos");
                             setSelectedTableId(selectedTable.id);
                           }}
-                          className="w-full py-5 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-medium hover:bg-indigo-600 dark:hover:bg-indigo-100 transition"
+                          className="w-full py-4 rounded-2xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-semibold hover:bg-indigo-600 dark:hover:bg-indigo-100 transition shadow-md hover:shadow-lg"
                         >
-                          Start New Order
+                          Start Order
                         </button>
                       )}
                     </div>
@@ -794,6 +856,11 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
           </>
         )}
       </AnimatePresence>
+      <GlobalProcessingOverlay
+        isVisible={isProcessingTableAction}
+        title="Updating Table Session"
+        subtitle="Please wait while we update the table status"
+      />
     </div>
   );
 };

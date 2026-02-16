@@ -45,6 +45,7 @@ const App: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<Category>("Starters");
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [viewMode, setViewMode] = useState<"2d" | "3d">("2d");
+  const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
 
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [floors, setFloors] = useState<Floor[]>([]);
@@ -69,6 +70,7 @@ const App: React.FC = () => {
 
   const [history, setHistory] = useState<LayoutSnapshot[]>([]);
   const [historyIndex, setHistoryIndex] = useState<number>(-1);
+  const [isProcessingTableAction, setIsProcessingTableAction] = useState(false);
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
@@ -97,6 +99,17 @@ const App: React.FC = () => {
 
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    if (!activeOrderId) return;
+
+    const order = orders.find((o) => o.id === activeOrderId);
+    if (!order) return;
+
+    setCart(order.items);
+    setSelectedTableId(order.tableId || null);
+    setOrderType(order.orderType);
+  }, [activeOrderId, orders]);
 
   useEffect(() => {
     if (!user) return;
@@ -263,7 +276,7 @@ const App: React.FC = () => {
   };
 
   const enterEditMode = () => {
-    if (viewMode !== "3d") setViewMode("3d");
+    // if (viewMode !== "3d") setViewMode("3d");
 
     const floorCopy = JSON.parse(JSON.stringify(floors));
     const tableCopy = JSON.parse(JSON.stringify(tables));
@@ -377,7 +390,7 @@ const App: React.FC = () => {
       const tax = subtotal * 0.12;
       const total = subtotal + tax;
 
-      const newOrder: Omit<Order, "id"> = {
+      const orderPayload: Omit<Order, "id"> = {
         orderType,
         items: [...cart],
         status: orderType === "Takeaway" ? "Paid" : "Pending",
@@ -390,13 +403,21 @@ const App: React.FC = () => {
           : {}),
       };
 
-      const docRef = await orderService.create(newOrder);
+      if (activeOrderId) {
+        // UPDATE EXISTING ORDER
+        await orderService.update(activeOrderId, orderPayload);
+      } else {
+        // CREATE NEW ORDER
+        const docRef = await orderService.create(orderPayload);
 
-      if (orderType === "Dining" && selectedTableId) {
-        await tableService.update(selectedTableId, {
-          status: "Occupied",
-          currentOrderId: docRef.id,
-        });
+        if (orderType === "Dining" && selectedTableId) {
+          await tableService.update(selectedTableId, {
+            status: "Occupied",
+            currentOrderId: docRef.id,
+          });
+        }
+
+        setActiveOrderId(docRef.id);
       }
 
       const updatedOrders = await orderService.getAll();
@@ -404,9 +425,17 @@ const App: React.FC = () => {
 
       setOrders(updatedOrders);
       setTables(updatedTables);
-      setCart([]);
 
-      toast("Order placed successfully", "success");
+      if (orderType === "Takeaway") {
+        // Takeaway ends immediately
+        setCart([]);
+        setActiveOrderId(null);
+      } else {
+        // Dining order stays active
+        setCart(orderPayload.items);
+      }
+
+      toast("Order saved successfully", "success");
     } catch (error) {
       console.error(error);
       toast("Order failed", "error");
@@ -422,20 +451,28 @@ const App: React.FC = () => {
 
     if (!orderToPay) return;
 
-    await orderService.update(orderToPay.id, { status: "Paid" });
+    try {
+      setIsProcessingTableAction(true);
 
-    await tableService.update(tableId, {
-      status: "Available",
-      currentOrderId: null,
-    });
+      await orderService.update(orderToPay.id, { status: "Paid" });
 
-    const updatedOrders = await orderService.getAll();
-    const updatedTables = await tableService.getAll();
+      await tableService.update(tableId, {
+        status: "Available",
+        currentOrderId: null,
+      });
 
-    setOrders(updatedOrders);
-    setTables(updatedTables);
+      const updatedOrders = await orderService.getAll();
+      const updatedTables = await tableService.getAll();
 
-    toast("Bill settled successfully", "success");
+      setOrders(updatedOrders);
+      setTables(updatedTables);
+
+      toast("Bill settled successfully", "success");
+    } catch (err) {
+      toast("Failed to settle bill", "error");
+    } finally {
+      setIsProcessingTableAction(false);
+    }
   };
 
   const voidTableOrder = async (tableId: string) => {
@@ -445,20 +482,28 @@ const App: React.FC = () => {
 
     if (!orderToVoid) return;
 
-    await orderService.delete(orderToVoid.id);
+    try {
+      setIsProcessingTableAction(true);
 
-    await tableService.update(tableId, {
-      status: "Available",
-      currentOrderId: null,
-    });
+      await orderService.delete(orderToVoid.id);
 
-    const updatedOrders = await orderService.getAll();
-    const updatedTables = await tableService.getAll();
+      await tableService.update(tableId, {
+        status: "Available",
+        currentOrderId: null,
+      });
 
-    setOrders(updatedOrders);
-    setTables(updatedTables);
+      const updatedOrders = await orderService.getAll();
+      const updatedTables = await tableService.getAll();
 
-    toast("Session cancelled", "info");
+      setOrders(updatedOrders);
+      setTables(updatedTables);
+
+      toast("Session cancelled", "info");
+    } catch (err) {
+      toast("Failed to cancel session", "error");
+    } finally {
+      setIsProcessingTableAction(false);
+    }
   };
 
   const updateDraftTable = (id: string, updates: Partial<Table>) => {
@@ -668,6 +713,8 @@ const App: React.FC = () => {
       case "tables":
         return (
           <FloorMapView
+            activeOrderId={activeOrderId}
+            setActiveOrderId={setActiveOrderId}
             isMobile={isMobile}
             activeFloors={activeFloors}
             activeTables={activeTables}
@@ -702,6 +749,7 @@ const App: React.FC = () => {
             onRedo={handleRedo}
             canUndo={historyIndex > 0}
             canRedo={historyIndex < history.length - 1}
+            isProcessingTableAction={isProcessingTableAction}
           />
         );
       case "pos":
@@ -709,6 +757,8 @@ const App: React.FC = () => {
           <POSView
             selectedTable={selectedTable}
             setSelectedTableId={setSelectedTableId}
+            activeOrderId={activeOrderId}
+            setActiveOrderId={setActiveOrderId}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
             CATEGORIES={CATEGORIES}
