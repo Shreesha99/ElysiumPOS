@@ -352,18 +352,16 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
             </div>
 
             {!isEditMode ? (
-              !isMobile && (
-                <button
-                  onClick={() => {
-                    setShowEditWarning(true);
-                    enterEditMode();
-                  }}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
-                >
-                  <Settings2 size={16} />
-                  Edit Mode
-                </button>
-              )
+              <button
+                onClick={() => {
+                  setShowEditWarning(true);
+                  enterEditMode();
+                }}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+              >
+                <Settings2 size={16} />
+                Edit Mode
+              </button>
             ) : (
               <>
                 <div className="flex items-center gap-2">
