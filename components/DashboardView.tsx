@@ -10,8 +10,8 @@ import {
   Database,
   Zap,
 } from "lucide-react";
-import { Order, Table, BusinessInsight, MenuItem } from "../types";
-import SectionHeader from "./ui/SectionHeader";
+import { Order, Table, BusinessInsight, MenuItem } from "@/types";
+import SectionHeader from "@/components/ui/SectionHeader";
 
 interface DashboardViewProps {
   stats: any;

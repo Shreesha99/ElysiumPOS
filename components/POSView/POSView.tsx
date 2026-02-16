@@ -6,18 +6,17 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-  Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-import SearchBar from "./SearchBar";
-import MenuGridSection from "./MenuGridSection";
-import CartPanel from "../CartPanel";
+import SearchBar from "@/components/POSView/SearchBar";
+import MenuGridSection from "@/components/POSView/MenuGridSection";
+import CartPanel from "@/components/CartPanel";
 
-import { MenuItem, Category, CartItem, Table, OrderType } from "../../types";
-import MenuFiltersBar from "./MenuFiltersBar";
+import { MenuItem, Category, CartItem, Table, OrderType } from "@/types";
+import MenuFiltersBar from "@/components/POSView/MenuFiltersBar";
 import SectionHeader from "@/components/ui/SectionHeader";
-import GlobalProcessingOverlay from "../ui/GlobalProcessingOverlay";
+import GlobalProcessingOverlay from "@/components/ui/GlobalProcessingOverlay";
 
 interface POSViewProps {
   selectedTable: Table | undefined;

@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from "react";
-import { MenuItem, Category } from "../../types";
+import { MenuItem, Category } from "@/types";
 import { Package, Plus } from "lucide-react";
 
-import SectionHeader from "../ui/SectionHeader";
-import SearchBar from "../POSView/SearchBar";
-import MenuFiltersBar from "../POSView/MenuFiltersBar";
-import InventoryGrid from "./InventoryGrid";
-import InventoryModal from "./InventoryModal";
+import SectionHeader from "@/components/ui/SectionHeader";
+import SearchBar from "@/components/POSView/SearchBar";
+import MenuFiltersBar from "@/components/POSView/MenuFiltersBar";
+import InventoryGrid from "@/components/InventoryView/InventoryGrid";
+import InventoryModal from "@/components/InventoryView/InventoryModal";
 
 interface InventoryViewProps {
   handleAddDish: (dish: MenuItem) => void;

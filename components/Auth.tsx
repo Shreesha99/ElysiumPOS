@@ -1,15 +1,8 @@
 import React, { useState } from "react";
-import { authService, AppUser } from "../services/authService";
-import { toast } from "./Toaster";
+import { authService, AppUser } from "@/services/authService";
+import { toast } from "@/components/ui/Toaster";
 import { motion } from "framer-motion";
-import {
-  ChevronRight,
-  Mail,
-  Lock,
-  Loader2,
-  AlertCircle,
-  User,
-} from "lucide-react";
+import { ChevronRight, Mail, Lock, Loader2, User } from "lucide-react";
 
 interface AuthProps {
   onAuthSuccess: (user: AppUser) => void;

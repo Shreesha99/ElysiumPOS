@@ -1,7 +1,7 @@
 import React from "react";
-import DietaryFilterRow from "./DietaryFilterRow";
-import SortDropdown from "./SortDropdown";
-import { Category } from "../../types";
+import DietaryFilterRow from "@/components/POSView/DietaryFilterRow";
+import SortDropdown from "@/components/POSView/SortDropdown";
+import { Category } from "@/types";
 
 interface Props {
   CATEGORIES: Category[];

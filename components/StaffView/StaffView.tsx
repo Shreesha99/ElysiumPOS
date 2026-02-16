@@ -1,9 +1,8 @@
 import React, { useState } from "react";
 import { Waiter } from "@/types";
-import StaffHeader from "./StaffHeader";
-import StaffGrid from "./StaffGrid";
-import AddStaffModal from "./AddStaffModal";
-import SectionHeader from "../ui/SectionHeader";
+import StaffGrid from "@/components/StaffView/StaffGrid";
+import AddStaffModal from "@/components/StaffView/AddStaffModal";
+import SectionHeader from "@/components/ui/SectionHeader";
 import { Plus, Settings2, Users } from "lucide-react";
 
 interface StaffViewProps {

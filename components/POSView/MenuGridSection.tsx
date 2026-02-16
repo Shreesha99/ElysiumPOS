@@ -1,8 +1,8 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search } from "lucide-react";
-import MenuCard from "../MenuCard";
-import { MenuItem } from "../../types";
+import MenuCard from "@/components/MenuCard";
+import { MenuItem } from "@/types";
 
 interface Props {
   items: MenuItem[];

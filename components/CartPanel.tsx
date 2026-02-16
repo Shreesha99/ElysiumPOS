@@ -1,5 +1,5 @@
 import React from "react";
-import { CartItem, MenuItem, OrderType } from "../types";
+import { CartItem, MenuItem, OrderType } from "@/types";
 import {
   ShoppingBag,
   Minus,

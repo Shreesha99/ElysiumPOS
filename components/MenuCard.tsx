@@ -1,6 +1,6 @@
 import React from "react";
 import { Plus, Zap } from "lucide-react";
-import { MenuItem } from "../types";
+import { MenuItem } from "@/types";
 
 interface MenuCardProps {
   item: MenuItem;

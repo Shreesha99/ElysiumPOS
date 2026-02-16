@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { MenuItem, Category, FoodType } from "@/types";
-import { X, ImageIcon, DollarSign, Package } from "lucide-react";
+import { X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Props {

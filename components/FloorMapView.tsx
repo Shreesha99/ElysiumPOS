@@ -19,9 +19,9 @@ import {
   Redo2Icon,
   Building,
 } from "lucide-react";
-import { Table, Floor, Order } from "../types";
-import SectionHeader from "./ui/SectionHeader";
-import GlobalProcessingOverlay from "./ui/GlobalProcessingOverlay";
+import { Table, Floor, Order } from "@/types";
+import SectionHeader from "@/components/ui/SectionHeader";
+import GlobalProcessingOverlay from "@/components/ui/GlobalProcessingOverlay";
 
 const GRID_SIZE = 40;
 

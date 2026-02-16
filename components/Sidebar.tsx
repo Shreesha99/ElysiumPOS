@@ -13,8 +13,8 @@ import {
   MoreHorizontal,
   CircleHelp,
 } from "lucide-react";
-import { AppUser } from "../services/authService";
-import BrandIcon from "./BrandIcon";
+import { AppUser } from "@/services/authService";
+import BrandIcon from "@/components/ui/BrandIcon";
 
 interface SidebarProps {
   activeTab: string;

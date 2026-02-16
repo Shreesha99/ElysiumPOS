@@ -1,5 +1,5 @@
 import React from "react";
-import SortDropdown from "../POSView/SortDropdown";
+import SortDropdown from "@/components/POSView/SortDropdown";
 import { Category } from "@/types";
 
 interface Props {

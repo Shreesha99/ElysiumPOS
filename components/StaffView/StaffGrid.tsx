@@ -1,6 +1,6 @@
 import React from "react";
 import { Waiter } from "@/types";
-import StaffCard from "./StaffCard";
+import StaffCard from "@/components/StaffView/StaffCard";
 
 interface Props {
   waiters: Waiter[];

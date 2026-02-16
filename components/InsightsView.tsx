@@ -7,14 +7,12 @@ import {
   Minus,
   RefreshCcw,
   Loader2,
-  AlertTriangle,
-  Lock,
   ArrowUpRight,
   X,
 } from "lucide-react";
-import { BusinessInsight } from "../types";
-import SectionHeader from "./ui/SectionHeader";
-import { toast } from "./Toaster";
+import { BusinessInsight } from "@/types";
+import SectionHeader from "@/components/ui/SectionHeader";
+import { toast } from "@/components/ui/Toaster";
 
 interface InsightsViewProps {
   insights: BusinessInsight[];

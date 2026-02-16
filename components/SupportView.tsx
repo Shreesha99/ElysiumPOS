@@ -9,7 +9,7 @@ import {
   LifeBuoy,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import SectionHeader from "./ui/SectionHeader";
+import SectionHeader from "@/components/ui/SectionHeader";
 
 interface FAQ {
   category: string;

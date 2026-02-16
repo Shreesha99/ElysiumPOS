@@ -1,6 +1,6 @@
 import React from "react";
 import { MenuItem } from "@/types";
-import InventoryCard from "./InventoryCard";
+import InventoryCard from "@/components/InventoryView/InventoryCard";
 import { AnimatePresence } from "framer-motion";
 
 interface Props {

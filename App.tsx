@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Sidebar from "./components/Sidebar";
 import Auth from "./components/Auth";
-import { Toaster, toast } from "./components/Toaster";
+import { Toaster, toast } from "./components/ui/Toaster";
 import {
   MenuItem,
   Category,
