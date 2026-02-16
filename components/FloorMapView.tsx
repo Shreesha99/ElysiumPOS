@@ -122,6 +122,7 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
   const [isResizingHeight, setIsResizingHeight] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [showEditWarning, setShowEditWarning] = useState(false);
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
 
   const deleteTargetTable = activeTables.find((t) => t.id === deleteTargetId);
 
@@ -391,7 +392,7 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                 </button>
 
                 <button
-                  onClick={saveEdit}
+                  onClick={() => setShowSaveConfirm(true)}
                   disabled={saveLoading}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition ${
                     saveLoading
@@ -1248,10 +1249,75 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {showSaveConfirm && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowSaveConfirm(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+
+            {/* Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.2 }}
+              className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-xl p-6 shadow-xl border border-zinc-200 dark:border-zinc-800"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold dark:text-white">
+                  Confirm Save Layout
+                </h3>
+                <button onClick={() => setShowSaveConfirm(false)}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-6 leading-relaxed">
+                This will permanently apply all spatial modifications including
+                floor changes, table positions, deletions and structural
+                updates.
+                <br />
+                <br />
+                Continue?
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowSaveConfirm(false)}
+                  className="flex-1 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 dark:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700 transition"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={async () => {
+                    setShowSaveConfirm(false);
+                    await saveEdit();
+                  }}
+                  className="flex-1 py-3 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition"
+                >
+                  Confirm & Save
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <GlobalProcessingOverlay
-        isVisible={isProcessingTableAction}
-        title="Updating Table Session"
-        subtitle="Please wait while we update the table status"
+        isVisible={isProcessingTableAction || saveLoading}
+        title={saveLoading ? "Saving Spatial Layout" : "Updating Table Session"}
+        subtitle={
+          saveLoading
+            ? "Please wait while we commit floor and table changes"
+            : "Please wait while we update the table status"
+        }
       />
     </div>
   );
