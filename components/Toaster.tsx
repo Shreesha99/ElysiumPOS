@@ -19,7 +19,6 @@ export const toast = (message: string, type: ToastType = "info") => {
   toasts = [...toasts, { id, message, type }];
   toastListeners.forEach((listener) => listener(toasts));
 
-  // Auto-dismiss after 4 seconds
   setTimeout(() => {
     removeToast(id);
   }, 4000);
@@ -42,101 +41,44 @@ const ToastIcon = ({ type }: { type: ToastType }) => {
 };
 
 const ToastItem = ({ t }: { t: Toast }) => {
-  const colors = {
-    success: "rgb(16, 185, 129)",
-    error: "rgb(244, 63, 94)",
-    info: "rgb(79, 70, 229)",
-  };
-
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 40, scale: 0.95, filter: "blur(10px)" }}
-      animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
-      exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.15 } }}
-      className="relative group pointer-events-auto mb-4"
+      initial={{ opacity: 0, y: 20, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 10, scale: 0.98 }}
+      transition={{ duration: 0.2 }}
+      className="pointer-events-auto"
     >
-      {/* SVG Border Progress */}
-      <div className="absolute inset-0 pointer-events-none z-10">
-        <svg className="w-full h-full overflow-visible">
-          <rect
-            x="0"
-            y="0"
-            width="100%"
-            height="100%"
-            rx="20"
-            ry="20"
-            fill="none"
-            stroke={colors[t.type]}
-            strokeWidth="2"
-            strokeLinecap="round"
-            className="opacity-20"
-          />
-          <motion.rect
-            x="0"
-            y="0"
-            width="100%"
-            height="100%"
-            rx="20"
-            ry="20"
-            fill="none"
-            stroke={colors[t.type]}
-            strokeWidth="2"
-            strokeLinecap="round"
-            initial={{ pathLength: 1 }}
-            animate={{ pathLength: 0 }}
-            transition={{ duration: 4, ease: "linear" }}
-          />
-        </svg>
-      </div>
-
       <div
         className="
-  bg-white/80 dark:bg-zinc-900/80 
-  backdrop-blur-xl 
-  border border-zinc-200/50 dark:border-zinc-800/50 
-  px-4 sm:px-5 
-  py-3 sm:py-4 
-  rounded-2xl 
-  shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15)] 
-  flex items-center gap-3 sm:gap-4 
-  w-full 
-  sm:min-w-[380px] 
-  sm:max-w-[520px]
-"
+          bg-white dark:bg-zinc-900
+          border border-zinc-200 dark:border-zinc-800
+          shadow-xl
+          rounded-xl
+          px-4 py-3
+          flex items-start gap-3
+          min-w-[280px]
+          max-w-[420px]
+        "
       >
-        <div
-          className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
-            t.type === "success"
-              ? "bg-emerald-500/10"
-              : t.type === "error"
-              ? "bg-rose-500/10"
-              : "bg-indigo-500/10"
-          }`}
-        >
+        <div className="mt-0.5">
           <ToastIcon type={t.type} />
         </div>
 
-        <div className="flex-1 min-w-0 pr-4">
-          <h4
-            className={`text-[9px] font-black uppercase tracking-[0.25em] mb-1 ${
-              t.type === "success"
-                ? "text-emerald-600"
-                : t.type === "error"
-                ? "text-rose-600"
-                : "text-indigo-600"
-            }`}
-          >
-            {t.type}
-          </h4>
-          <p className="text-[13px] font-bold text-zinc-800 dark:text-zinc-100 leading-snug">
-            {t.message}
-          </p>
+        <div className="flex-1 text-sm font-medium text-zinc-800 dark:text-zinc-100">
+          {t.message}
         </div>
 
         <button
           onClick={() => removeToast(t.id)}
-          className="shrink-0 p-2 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 rounded-xl text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-all opacity-0 group-hover:opacity-100"
+          className="
+            p-1 rounded-md
+            text-zinc-400
+            hover:text-zinc-700
+            dark:hover:text-white
+            transition
+          "
         >
           <X size={16} />
         </button>
@@ -159,18 +101,17 @@ export const Toaster: React.FC = () => {
   return (
     <div
       className="
-  fixed 
-  bottom-[100px] sm:bottom-12
-  left-0 sm:left-1/2 
-  sm:-translate-x-1/2 
-  z-[999] 
-  flex flex-col items-center 
-  pointer-events-none 
-  w-full 
-  px-4 sm:px-6
-"
+        fixed
+        bottom-6
+        left-1/2
+        -translate-x-1/2
+        z-[999]
+        flex flex-col gap-3
+        pointer-events-none
+        px-4
+      "
     >
-      <AnimatePresence mode="popLayout">
+      <AnimatePresence>
         {activeToasts.map((t) => (
           <ToastItem key={t.id} t={t} />
         ))}

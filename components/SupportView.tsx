@@ -6,8 +6,10 @@ import {
   Send,
   CheckCircle2,
   ChevronDown,
+  LifeBuoy,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import SectionHeader from "./ui/SectionHeader";
 
 interface FAQ {
   category: string;
@@ -152,12 +154,11 @@ const SupportView: React.FC = () => {
   return (
     <div className="flex flex-col h-screen bg-zinc-50 dark:bg-zinc-950">
       {/* HEADER */}
-      <div className="shrink-0 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-6 py-6">
-        <div className="max-w-[1400px] mx-auto space-y-6">
-          <h1 className="text-3xl font-semibold dark:text-white">
-            Customer Support
-          </h1>
-
+      <SectionHeader
+        icon={<LifeBuoy size={20} />}
+        title="Customer Support"
+        subtitle="Help articles, troubleshooting, and contact support"
+        searchContent={
           <div className="flex items-center gap-3 bg-zinc-100 dark:bg-zinc-800 px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-700 focus-within:ring-2 focus-within:ring-indigo-500">
             <Search size={18} className="text-zinc-400" />
             <input
@@ -167,8 +168,8 @@ const SupportView: React.FC = () => {
               className="bg-transparent outline-none w-full text-sm dark:text-white"
             />
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* BODY */}
       <div className="flex-1 relative overflow-hidden">

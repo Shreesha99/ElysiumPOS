@@ -11,13 +11,12 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 
 import SearchBar from "./SearchBar";
-import DietaryFilterRow from "./DietaryFilterRow";
-import SortDropdown from "./SortDropdown";
 import MenuGridSection from "./MenuGridSection";
 import CartPanel from "../CartPanel";
 
 import { MenuItem, Category, CartItem, Table, OrderType } from "../../types";
 import MenuFiltersBar from "./MenuFiltersBar";
+import SectionHeader from "@/components/ui/SectionHeader";
 
 interface POSViewProps {
   selectedTable: Table | undefined;
@@ -137,105 +136,96 @@ const POSView: React.FC<POSViewProps> = ({
           isSubmittingOrder ? "pointer-events-none opacity-70" : ""
         }`}
       >
-        {/* HEADER */}
-        <header className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-40 shrink-0">
-          <div className="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
-            {/* TOP BAR */}
-            <div className="flex flex-wrap items-center justify-between gap-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600">
-                  <Utensils size={22} />
-                </div>
-                <div>
-                  <h1 className="text-2xl sm:text-3xl font-semibold dark:text-white">
-                    Order Management
-                  </h1>
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-                    Browse menu, create orders, and manage active sessions
-                  </p>
-                </div>
-              </div>
-
-              {/* ORDER TYPE SWITCH */}
-              <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg border border-zinc-200 dark:border-zinc-700">
-                <button
-                  disabled={isSubmittingOrder}
-                  onClick={() => setOrderType("Dining")}
-                  className={`px-4 py-2 rounded-md text-sm flex items-center gap-2 ${
-                    orderType === "Dining"
-                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-                      : "text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                  }`}
-                >
-                  <Utensils size={16} />
-                  Dine In
-                </button>
-
-                <button
-                  disabled={isSubmittingOrder}
-                  onClick={() => {
-                    setOrderType("Takeaway");
-                    setSelectedTableId(null);
-                  }}
-                  className={`px-4 py-2 rounded-md text-sm flex items-center gap-2 ${
-                    orderType === "Takeaway"
-                      ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-                      : "text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                  }`}
-                >
-                  <ShoppingBag size={16} />
-                  Takeaway
-                </button>
-              </div>
-            </div>
-
-            {/* TABLE STATUS BADGE */}
-            {orderType === "Dining" && (
-              <div
-                className={`flex items-center justify-between gap-3 px-4 py-2 rounded-lg border text-sm ${
-                  selectedTable
-                    ? "bg-emerald-50 border-emerald-200 text-emerald-600"
-                    : "bg-rose-50 border-rose-200 text-rose-500"
+        <SectionHeader
+          defaultExpanded={false}
+          disabled={isSubmittingOrder}
+          icon={<Utensils size={22} />}
+          title="Order Management"
+          subtitle="Browse menu, create orders, and manage active sessions"
+          rightContent={
+            <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg border border-zinc-200 dark:border-zinc-700">
+              <button
+                disabled={isSubmittingOrder}
+                onClick={() => setOrderType("Dining")}
+                className={`px-4 py-2 rounded-md text-sm flex items-center gap-2 ${
+                  orderType === "Dining"
+                    ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+                    : "text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700"
                 }`}
               >
-                <span>
-                  {selectedTable
-                    ? `Table T-${selectedTable.number}`
-                    : "Table not assigned"}
-                </span>
+                <Utensils size={16} />
+                Dine In
+              </button>
 
-                {selectedTable && (
-                  <button
-                    disabled={isSubmittingOrder}
-                    onClick={() => setSelectedTableId(null)}
-                  >
-                    <X size={14} />
-                  </button>
-                )}
-              </div>
-            )}
-
+              <button
+                disabled={isSubmittingOrder}
+                onClick={() => {
+                  setOrderType("Takeaway");
+                  setSelectedTableId(null);
+                }}
+                className={`px-4 py-2 rounded-md text-sm flex items-center gap-2 ${
+                  orderType === "Takeaway"
+                    ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+                    : "text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                }`}
+              >
+                <ShoppingBag size={16} />
+                Takeaway
+              </button>
+            </div>
+          }
+          /* 👇 SEARCH ALWAYS VISIBLE */
+          searchContent={
             <SearchBar value={searchQuery} onChange={setSearchQuery} />
+          }
+          /* 👇 COLLAPSIBLE FILTER SECTION */
+          bottomContent={
+            <>
+              {orderType === "Dining" && (
+                <div
+                  className={`flex items-center justify-between gap-3 px-4 py-2 rounded-lg border text-sm ${
+                    selectedTable
+                      ? "bg-emerald-50 border-emerald-200 text-emerald-600"
+                      : "bg-rose-50 border-rose-200 text-rose-500"
+                  }`}
+                >
+                  <span>
+                    {selectedTable
+                      ? `Table T-${selectedTable.number}`
+                      : "Table not assigned"}
+                  </span>
 
-            <MenuFiltersBar
-              CATEGORIES={CATEGORIES}
-              activeCategory={activeCategory}
-              setActiveCategory={setActiveCategory}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              foodFilter={foodFilter}
-              setFoodFilter={setFoodFilter}
-              filterCounts={filterCounts}
-              sortBy={sortBy}
-              setSortBy={setSortBy}
-              resultCount={processedItems.length}
-              isSubmittingOrder={isSubmittingOrder}
-            />
-          </div>
-        </header>
+                  {selectedTable && (
+                    <button
+                      disabled={isSubmittingOrder}
+                      onClick={() => setSelectedTableId(null)}
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <MenuFiltersBar
+                CATEGORIES={CATEGORIES}
+                activeCategory={activeCategory}
+                setActiveCategory={setActiveCategory}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                foodFilter={foodFilter}
+                setFoodFilter={setFoodFilter}
+                filterCounts={filterCounts}
+                sortBy={sortBy}
+                setSortBy={setSortBy}
+                resultCount={processedItems.length}
+                isSubmittingOrder={isSubmittingOrder}
+              />
+            </>
+          }
+        />
 
         {/* GRID */}
-        <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="flex-1 overflow-y-auto px-6 py-6 pb-28 lg:pb-6">
           <div className="max-w-[1800px] mx-auto">
             <MenuGridSection
               items={processedItems}

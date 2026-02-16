@@ -11,6 +11,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Order, Table, BusinessInsight, MenuItem } from "../types";
+import SectionHeader from "./ui/SectionHeader";
 
 interface DashboardViewProps {
   stats: any;
@@ -87,28 +88,20 @@ const DashboardView: React.FC<DashboardViewProps> = ({
 
   return (
     <div className="h-full flex flex-col bg-zinc-50 dark:bg-zinc-950 overflow-hidden">
-      {/* HEADER */}
-      <header className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-40 shrink-0">
-        <div className="max-w-[1600px] mx-auto px-6 py-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          {/* LEFT */}
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-semibold dark:text-white">
-              Overview
-            </h1>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-              Real time operational analytics and floor performance
-            </p>
-          </div>
-
-          {/* RIGHT */}
-          <div className="flex items-center gap-6 w-full md:w-auto">
-            <div className="text-right ml-auto">
+      <SectionHeader
+        icon={<BarChart3 size={22} />}
+        title="Overview"
+        defaultExpanded={true}
+        subtitle="Real time operational analytics and floor performance"
+        rightContent={
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+            <div className="text-right">
               <p className="text-xs text-zinc-400 uppercase tracking-wide">
-                Network Traffic
+                Live Orders
               </p>
               <p className="text-lg font-semibold text-emerald-500 flex items-center gap-2 justify-end">
                 <Activity size={16} />
-                {liveTraffic} req/min
+                {activeOrders.length} Active
               </p>
             </div>
 
@@ -120,12 +113,13 @@ const DashboardView: React.FC<DashboardViewProps> = ({
               Refresh Strategy
             </button>
           </div>
-        </div>
-      </header>
+        }
+        sticky
+      />
 
       {/* BODY SCROLL AREA */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-[1600px] mx-auto px-6 lg:px-12 py-10 space-y-12">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-12 py-6 sm:py-8 lg:py-10 space-y-12">
           {/* KPI CARDS */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
             {[
@@ -193,36 +187,40 @@ const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
 
           {/* SALES + POPULARITY */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-5 sm:p-8 gap-6 sm:gap-5 sm:p-8 gap-5 sm:p-8">
             {/* HOURLY SALES */}
-            <div className="lg:col-span-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-8 shadow-sm flex flex-col">
+            <div className="lg:col-span-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 sm:p-8 shadow-sm flex flex-col">
               <div className="flex justify-between items-center mb-8">
                 <h3 className="text-lg font-semibold dark:text-white">
                   Hourly Sales
                 </h3>
               </div>
 
-              <div className="flex-1 flex items-end justify-between gap-3 min-h-[220px]">
-                {stats.hourlySales?.map((h: any, i: number) => (
-                  <div
-                    key={i}
-                    className="flex-1 flex flex-col items-center gap-2"
-                  >
-                    <motion.div
-                      initial={{ height: 0 }}
-                      animate={{
-                        height: `${(h.value / maxHourlyValue) * 100}%`,
-                      }}
-                      className="w-full max-w-[36px] bg-indigo-500 rounded-t-md"
-                    />
-                    <span className="text-xs text-zinc-400">{h.hour}</span>
-                  </div>
-                ))}
+              <div className="flex-1 overflow-x-auto">
+                <div className="flex items-end gap-4 min-w-max min-h-[180px] sm:min-h-[220px] px-2">
+                  {stats.hourlySales?.map((h: any, i: number) => (
+                    <div
+                      key={i}
+                      className="flex flex-col items-center gap-2 w-14 shrink-0"
+                    >
+                      <motion.div
+                        initial={{ height: 0 }}
+                        animate={{
+                          height: `${(h.value / maxHourlyValue) * 100}%`,
+                        }}
+                        className="w-8 bg-indigo-500 rounded-t-md"
+                      />
+                      <span className="text-xs text-zinc-400 truncate w-full text-center">
+                        {h.hour}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
             {/* ASSET POPULARITY */}
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-8 shadow-sm flex flex-col">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 sm:p-8 shadow-sm flex flex-col">
               <h3 className="text-lg font-semibold dark:text-white mb-6">
                 Asset Popularity
               </h3>
@@ -256,9 +254,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
 
           {/* FLOOR + AI */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pb-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:p-8 pb-10">
             {/* FLOOR STATUS */}
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-8 shadow-sm">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 sm:p-8 shadow-sm">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-lg font-semibold dark:text-white">
                   Active Floor Sessions
@@ -271,7 +269,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                 </button>
               </div>
 
-              <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
                 {tables.map((t) => (
                   <div
                     key={t.id}
@@ -288,12 +286,15 @@ const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
 
             {/* AI STRATEGY */}
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-8 shadow-sm flex flex-col">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5 sm:p-8 shadow-sm flex flex-col">
               <h3 className="text-lg font-semibold dark:text-white mb-6">
                 AI Strategy Feed
               </h3>
 
-              <div className="space-y-4 flex-1 overflow-y-auto max-h-[300px]">
+              <div
+                className="space-y-4 flex-1 overflow-y-auto flex-1 overflow-y-auto
+"
+              >
                 {insights.length > 0 ? (
                   insights.map((s, i) => (
                     <div

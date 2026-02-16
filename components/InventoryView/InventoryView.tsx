@@ -1,6 +1,10 @@
 import React, { useState, useMemo } from "react";
 import { MenuItem, Category } from "../../types";
-import InventoryHeader from "./InventoryHeader";
+import { Package, Plus } from "lucide-react";
+
+import SectionHeader from "../ui/SectionHeader";
+import SearchBar from "../POSView/SearchBar";
+import MenuFiltersBar from "../POSView/MenuFiltersBar";
 import InventoryGrid from "./InventoryGrid";
 import InventoryModal from "./InventoryModal";
 
@@ -20,28 +24,63 @@ const InventoryView: React.FC<InventoryViewProps> = ({
   menuItems,
 }) => {
   const [search, setSearch] = useState("");
-  const [activeCategory, setActiveCategory] = useState<Category | "All">("All");
+  const [activeCategory, setActiveCategory] = useState<Category | "Starters">(
+    "Starters"
+  );
+
+  const [foodFilter, setFoodFilter] = useState<
+    "All" | "Veg" | "NonVeg" | "Egg"
+  >("All");
+
+  const [sortBy, setSortBy] = useState<
+    "relevance" | "priceLow" | "priceHigh" | "name"
+  >("relevance");
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
 
+  /* ----------------------- FILTER LOGIC (POS STYLE) ----------------------- */
+
   const filteredItems = useMemo(() => {
-    return menuItems.filter((item) => {
-      const matchesSearch =
-        item.name.toLowerCase().includes(search.toLowerCase()) ||
-        item.description.toLowerCase().includes(search.toLowerCase());
+    const items = menuItems.filter((item) => {
+      const query = search.trim().toLowerCase();
 
-      const matchesCategory =
-        activeCategory === "All" || item.category === activeCategory;
+      if (foodFilter !== "All" && item.foodType !== foodFilter) {
+        return false;
+      }
 
-      return matchesSearch && matchesCategory;
+      if (activeCategory !== "Starters" && item.category !== activeCategory) {
+        return false;
+      }
+
+      if (!query) return true;
+
+      const searchableText = `${item.name} ${item.description}`
+        .toLowerCase()
+        .replace(/[^\w\s]/g, "");
+
+      const tokens = query.split(/\s+/).filter(Boolean);
+
+      return tokens.every((token) => searchableText.includes(token));
     });
-  }, [menuItems, search, activeCategory]);
+
+    if (sortBy === "priceLow") items.sort((a, b) => a.price - b.price);
+
+    if (sortBy === "priceHigh") items.sort((a, b) => b.price - a.price);
+
+    if (sortBy === "name") items.sort((a, b) => a.name.localeCompare(b.name));
+
+    return items;
+  }, [menuItems, search, activeCategory, foodFilter, sortBy]);
+
+  /* ----------------------------- STATS ----------------------------- */
 
   const stats = useMemo(() => {
     const totalValue = menuItems.reduce(
       (acc, item) => acc + item.price * item.stock,
       0
     );
+
     const lowStockCount = menuItems.filter((i) => i.stock < 10).length;
 
     return {
@@ -51,18 +90,80 @@ const InventoryView: React.FC<InventoryViewProps> = ({
     };
   }, [menuItems]);
 
+  /* ------------------------ FILTER COUNTS ------------------------ */
+
+  const filterCounts = {
+    All: menuItems.length,
+    Veg: menuItems.filter((i) => i.foodType === "Veg").length,
+    NonVeg: menuItems.filter((i) => i.foodType === "NonVeg").length,
+    Egg: menuItems.filter((i) => i.foodType === "Egg").length,
+  };
+
   return (
     <div className="h-full flex flex-col bg-zinc-50 dark:bg-zinc-950 relative font-sans">
-      <InventoryHeader
-        stats={stats}
-        search={search}
-        setSearch={setSearch}
-        activeCategory={activeCategory}
-        setActiveCategory={setActiveCategory}
-        CATEGORIES={CATEGORIES}
-        openAddForm={() => setIsFormOpen(true)}
+      <SectionHeader
+        defaultExpanded={false}
+        icon={<Package size={22} />}
+        title="Inventory Management"
+        subtitle="Track stock levels, update dishes, and manage pricing"
+        rightContent={
+          <button
+            onClick={() => setIsFormOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-md bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 text-sm"
+          >
+            <Plus size={16} />
+            Add Dish
+          </button>
+        }
+        /* 👇 SEARCH ALWAYS VISIBLE */
+        searchContent={<SearchBar value={search} onChange={setSearch} />}
+        /* 👇 COLLAPSIBLE SECTION */
+        bottomContent={
+          <>
+            {/* STATS ROW */}
+            <div className="hidden md:grid md:grid-cols-3 gap-4">
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4">
+                <p className="text-xs text-zinc-500">Total Items</p>
+                <p className="text-xl font-semibold dark:text-white">
+                  {stats.totalItems}
+                </p>
+              </div>
+
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4">
+                <p className="text-xs text-zinc-500">Low Stock</p>
+                <p className="text-xl font-semibold text-rose-500">
+                  {stats.lowStockCount}
+                </p>
+              </div>
+
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4">
+                <p className="text-xs text-zinc-500">Total Value</p>
+                <p className="text-xl font-semibold text-emerald-600">
+                  ₹{stats.totalValue.toLocaleString()}
+                </p>
+              </div>
+            </div>
+
+            {/* FILTER BAR */}
+            <MenuFiltersBar
+              CATEGORIES={["Starters", ...CATEGORIES]}
+              activeCategory={activeCategory}
+              setActiveCategory={setActiveCategory}
+              searchQuery={search}
+              setSearchQuery={setSearch}
+              foodFilter={foodFilter}
+              setFoodFilter={setFoodFilter}
+              filterCounts={filterCounts}
+              sortBy={sortBy}
+              setSortBy={setSortBy}
+              resultCount={filteredItems.length}
+              isSubmittingOrder={false}
+            />
+          </>
+        }
       />
 
+      {/* GRID */}
       <InventoryGrid
         items={filteredItems}
         openEditForm={(item) => {
@@ -73,6 +174,7 @@ const InventoryView: React.FC<InventoryViewProps> = ({
         handleUpdateDish={handleUpdateDish}
       />
 
+      {/* MODAL */}
       <InventoryModal
         isOpen={isFormOpen}
         setIsOpen={setIsFormOpen}

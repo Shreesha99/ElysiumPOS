@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BrainCircuit,
@@ -13,6 +13,8 @@ import {
   X,
 } from "lucide-react";
 import { BusinessInsight } from "../types";
+import SectionHeader from "./ui/SectionHeader";
+import { toast } from "./Toaster";
 
 interface InsightsViewProps {
   insights: BusinessInsight[];
@@ -20,6 +22,19 @@ interface InsightsViewProps {
   isLoading?: boolean;
   error?: string | null;
 }
+
+const translateError = (errorMessage: string) => {
+  switch (errorMessage) {
+    case "QUOTA_EXHAUSTED":
+      return "Neural engine rate limit reached. Please wait before retrying.";
+
+    case "API_KEY_MISSING":
+      return "AI engine is not configured. Please verify system credentials.";
+
+    default:
+      return "Unexpected system anomaly detected. Please try again.";
+  }
+};
 
 const InsightsView: React.FC<InsightsViewProps> = ({
   insights,
@@ -32,6 +47,21 @@ const InsightsView: React.FC<InsightsViewProps> = ({
 
   const hasInsights = insights.length > 0;
   const isDormant = !hasInsights && !isLoading && !error;
+
+  const [cooldown, setCooldown] = useState(false);
+
+  useEffect(() => {
+    if (error?.includes("429")) {
+      setCooldown(true);
+      setTimeout(() => setCooldown(false), 5000);
+    }
+  }, [error]);
+
+  React.useEffect(() => {
+    if (error) {
+      toast(translateError(error), "error");
+    }
+  }, [error]);
 
   const getTrendIcon = (trend: string) => {
     switch (trend) {
@@ -93,30 +123,15 @@ dark:bg-[radial-gradient(#ffffff_1px,transparent_1px)]
 [background-size:20px_20px]"
       />
 
-      {/* Header */}
-      <header className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-40">
-        <div className="max-w-[1600px] mx-auto px-6 py-6 flex items-center justify-between">
-          {/* LEFT */}
-          <div className="flex items-center gap-4">
-            <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-500 dark:text-indigo-400">
-              <BrainCircuit size={20} />
-            </div>
-
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-semibold dark:text-white">
-                AI Strategy Hub
-              </h1>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-                Predictive neural synthesis engine
-              </p>
-            </div>
-          </div>
-
-          {/* RIGHT ACTION */}
-          {(insights.length > 0 || error) && (
+      <SectionHeader
+        icon={<BrainCircuit size={20} />}
+        title="AI Strategy Hub"
+        subtitle="Predictive neural synthesis engine"
+        rightContent={
+          insights.length > 0 && (
             <button
               onClick={fetchAIInsights}
-              disabled={isLoading}
+              disabled={isLoading || cooldown}
               className="flex items-center gap-2 px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition disabled:opacity-50"
             >
               {isLoading ? (
@@ -126,9 +141,9 @@ dark:bg-[radial-gradient(#ffffff_1px,transparent_1px)]
               )}
               Refresh
             </button>
-          )}
-        </div>
-      </header>
+          )
+        }
+      />
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-8 py-10">
@@ -193,20 +208,36 @@ dark:bg-[radial-gradient(#ffffff_1px,transparent_1px)]
                 </div>
 
                 {/* Loading Text */}
-                <div className="flex flex-col items-center gap-3">
-                  <p className="text-sm font-semibold tracking-wide text-zinc-600 dark:text-zinc-400">
-                    Running Neural Analysis
-                  </p>
+                <div className="flex flex-col items-center gap-6 text-center max-w-md">
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="space-y-2"
+                  >
+                    <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
+                      Neural Engine Active
+                    </p>
 
-                  <div className="w-64 h-1 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">
+                      Synthesizing Strategic Signals
+                    </h3>
+
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                      Analyzing order velocity, asset demand, floor dynamics and
+                      revenue deltas.
+                    </p>
+                  </motion.div>
+
+                  <div className="w-72 h-1 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
                     <motion.div
                       animate={{ x: ["-100%", "100%"] }}
                       transition={{
-                        duration: 1.6,
+                        duration: 1.4,
                         repeat: Infinity,
                         ease: "easeInOut",
                       }}
-                      className="w-1/2 h-full bg-indigo-500"
+                      className="w-1/2 h-full bg-gradient-to-r from-indigo-500 via-cyan-400 to-indigo-500"
                     />
                   </div>
                 </div>
@@ -276,7 +307,16 @@ dark:bg-[radial-gradient(#ffffff_1px,transparent_1px)]
                 />
                 <button
                   onClick={fetchAIInsights}
-                  className="bg-indigo-600 px-6 py-2.5 rounded-lg text-sm hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/20"
+                  className="
+    bg-indigo-600 text-white
+    hover:bg-indigo-700
+    dark:bg-indigo-500 dark:hover:bg-indigo-600
+    px-6 py-2.5
+    rounded-lg
+    text-sm font-medium
+    transition-all
+    shadow-md dark:shadow-indigo-500/10
+  "
                 >
                   Initiate Neural Analysis
                 </button>

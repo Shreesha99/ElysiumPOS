@@ -94,36 +94,59 @@ const Sidebar: React.FC<SidebarProps> = ({
         {/* FOOTER */}
         <div className="px-6 py-6 border-t border-zinc-200 dark:border-zinc-900 space-y-4">
           {/* THEME */}
-          <button
-            onClick={toggleDarkMode}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition"
-          >
-            {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-            {darkMode ? "Light Theme" : "Dark Theme"}
-          </button>
+          <div className="w-full">
+            <div className="flex w-full bg-zinc-100 dark:bg-zinc-900 rounded-xl p-1">
+              {/* Light */}
+              <button
+                onClick={() => darkMode && toggleDarkMode()}
+                className={`flex-1 flex items-center justify-center h-9 rounded-lg transition-all duration-200 ${
+                  !darkMode
+                    ? "bg-indigo-600 text-white shadow-sm"
+                    : "text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                }`}
+              >
+                <Sun size={16} />
+              </button>
+
+              {/* Dark */}
+              <button
+                onClick={() => !darkMode && toggleDarkMode()}
+                className={`flex-1 flex items-center justify-center h-9 rounded-lg transition-all duration-200 ${
+                  darkMode
+                    ? "bg-indigo-600 text-white shadow-sm"
+                    : "text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                }`}
+              >
+                <Moon size={16} />
+              </button>
+            </div>
+          </div>
 
           {/* USER CARD */}
-          <div className="flex items-center gap-3 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-            <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-600 font-bold text-sm uppercase">
-              {user?.name?.charAt(0)}
+          <button
+            onClick={onLogout}
+            className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-full bg-indigo-600 text-white flex items-center justify-center text-sm font-semibold uppercase">
+                {user?.name?.charAt(0)}
+              </div>
+
+              <div className="min-w-0">
+                <p className="text-sm font-semibold truncate dark:text-white">
+                  {user?.name}
+                </p>
+                <p className="text-[10px] tracking-wider text-zinc-400 uppercase">
+                  Operator
+                </p>
+              </div>
             </div>
 
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold dark:text-white truncate">
-                {user?.name}
-              </p>
-              <p className="text-[10px] tracking-wider text-zinc-400 uppercase">
-                Operator
-              </p>
-            </div>
-
-            <button
-              onClick={onLogout}
-              className="p-2 text-zinc-400 hover:text-rose-500 transition-colors"
-            >
-              <LogOut size={16} />
-            </button>
-          </div>
+            <LogOut
+              size={16}
+              className="text-zinc-400 group-hover:text-rose-500"
+            />
+          </button>
         </div>
       </aside>
 
@@ -188,13 +211,33 @@ const Sidebar: React.FC<SidebarProps> = ({
 
             <div className="border-t border-zinc-200 dark:border-zinc-800" />
 
-            <button
-              onClick={toggleDarkMode}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-900 text-sm"
-            >
-              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-              {darkMode ? "Light Theme" : "Dark Theme"}
-            </button>
+            <div className="w-full">
+              <div className="flex w-full bg-zinc-100 dark:bg-zinc-900 rounded-xl p-1">
+                {/* Light */}
+                <button
+                  onClick={() => darkMode && toggleDarkMode()}
+                  className={`flex-1 flex items-center justify-center h-9 rounded-lg transition-all duration-200 ${
+                    !darkMode
+                      ? "bg-indigo-600 text-white shadow-sm"
+                      : "text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                  }`}
+                >
+                  <Sun size={16} />
+                </button>
+
+                {/* Dark */}
+                <button
+                  onClick={() => !darkMode && toggleDarkMode()}
+                  className={`flex-1 flex items-center justify-center h-9 rounded-lg transition-all duration-200 ${
+                    darkMode
+                      ? "bg-indigo-600 text-white shadow-sm"
+                      : "text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                  }`}
+                >
+                  <Moon size={16} />
+                </button>
+              </div>
+            </div>
 
             <div className="flex items-center gap-3 p-4 bg-zinc-100 dark:bg-zinc-900 rounded-xl">
               <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold">
