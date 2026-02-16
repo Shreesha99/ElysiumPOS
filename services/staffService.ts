@@ -1,7 +1,6 @@
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "./firebase";
-
 import { db } from "./firebase";
 import { getRestaurantId } from "./restaurantContext";
 import { Waiter } from "../types";
@@ -24,7 +23,7 @@ export const staffService = {
   },
 
   /* =========================
-     CREATE STAFF (AUTH + DB)
+     CREATE STAFF
   ========================== */
   async create(name: string, email: string, password: string): Promise<void> {
     const createStaffUser = httpsCallable(functions, "createStaffUser");
@@ -53,6 +52,7 @@ export const staffService = {
   ========================== */
   async delete(id: string) {
     const deleteStaffUser = httpsCallable(functions, "deleteStaffUser");
+
     await deleteStaffUser({ uid: id });
   },
 };

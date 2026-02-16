@@ -36,7 +36,7 @@ const StaffCard: React.FC<Props> = ({
   deleteWaiter,
 }) => {
   const today = new Date().toISOString().split("T")[0];
-  const isOnLeave = waiter.leaveDates.includes(today);
+  const isOnLeave = waiter.leaveDates?.includes(today) ?? false;
   const [isMutating, setIsMutating] = useState(false);
 
   const [roleOpen, setRoleOpen] = useState(false);
