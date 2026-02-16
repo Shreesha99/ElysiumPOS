@@ -24,6 +24,7 @@ import {
 import { Table, Floor, Order } from "@/types";
 import SectionHeader from "@/components/ui/SectionHeader";
 import GlobalProcessingOverlay from "@/components/ui/GlobalProcessingOverlay";
+import { toast } from "./ui/Toaster";
 
 const GRID_SIZE = 40;
 
@@ -115,12 +116,26 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
   const show3DRestriction = isMobile && viewMode === "3d";
   const [isResizingWidth, setIsResizingWidth] = useState(false);
   const [isResizingHeight, setIsResizingHeight] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [showEditWarning, setShowEditWarning] = useState(false);
+
+  const deleteTargetTable = activeTables.find((t) => t.id === deleteTargetId);
 
   const filteredTables = activeTables
     .filter((t) => t.floorId === activeFloorId)
     .filter(
       (t) => tableSearch === "" || t.number.toString().includes(tableSearch)
     );
+
+  React.useEffect(() => {
+    if (!showEditWarning) return;
+
+    const timeout = setTimeout(() => {
+      setShowEditWarning(false);
+    }, 7000);
+
+    return () => clearTimeout(timeout);
+  }, [showEditWarning]);
 
   const renderTableNode = (table: Table) => {
     const isSelected = selectedTableId === table.id;
@@ -172,6 +187,17 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
           </div>
           {isEditMode && isSelected && (
             <>
+              {/* Delete handle */}
+              <div
+                className="absolute -bottom-6 -left-6 w-12 h-12 bg-rose-600 rounded-2xl flex items-center justify-center text-white shadow-2xl border-4 border-white z-[70] hover:scale-105 active:scale-95 transition-all"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDeleteTargetId(table.id);
+                }}
+              >
+                <Trash2 size={20} />
+              </div>
+
               <div
                 className="absolute -top-6 -left-6 w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white cursor-move shadow-2xl border-4 border-white z-[60]"
                 onMouseDown={(e) => {
@@ -323,7 +349,10 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
             {!isEditMode ? (
               !isMobile && (
                 <button
-                  onClick={enterEditMode}
+                  onClick={() => {
+                    setShowEditWarning(true);
+                    enterEditMode();
+                  }}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
                 >
                   <Settings2 size={16} />
@@ -769,7 +798,7 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setSelectedTableId(table.id)}
-                      className={`aspect-square p-6 rounded-3xl border transition-all flex flex-col items-center justify-center gap-3 relative shadow-lg hover:shadow-xl
+                      className={`relative aspect-square p-6 rounded-3xl border transition-all flex flex-col items-center justify-center gap-3 relative shadow-lg hover:shadow-xl
  ${
    selectedTableId === table.id
      ? "bg-gradient-to-br from-indigo-600 to-indigo-500 text-white border-indigo-500 shadow-2xl "
@@ -778,6 +807,18 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
      : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white shadow-md hover:shadow-xl"
  }`}
                     >
+                      {/* ✅ DELETE BUTTON */}
+                      {isEditMode && (
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteTargetId(table.id);
+                          }}
+                          className="absolute top-3 right-3 w-8 h-8 rounded-lg bg-rose-500 text-white flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition"
+                        >
+                          <Trash2 size={14} />
+                        </div>
+                      )}
                       <span className="text-2xl sm:text-4xl font-black uppercase tracking-tighter">
                         T{table.number}
                       </span>
@@ -1060,6 +1101,145 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
           </>
         )}
       </AnimatePresence>
+      <AnimatePresence>
+        {deleteTargetId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setDeleteTargetId(null)}
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            />
+
+            {/* Modal */}
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-xl p-6 shadow-xl border border-zinc-200 dark:border-zinc-800"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-lg font-semibold dark:text-white">
+                  Delete Table -{" "}
+                  {deleteTargetTable ? `T${deleteTargetTable.number}` : ""}
+                </h3>
+                <button onClick={() => setDeleteTargetId(null)}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
+                This action cannot be undone. Are you sure you want to delete
+                this table?
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteTargetId(null)}
+                  className="flex-1 py-2.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 dark:text-white hover:bg-zinc-100 dark:hover:bg-zinc-700 transition"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={async () => {
+                    try {
+                      await deleteDraftTable(deleteTargetId);
+                      setDeleteTargetId(null);
+                      setSelectedTableId(null);
+                      toast("Table deleted successfully", "success");
+                    } catch (err) {
+                      toast("Failed to delete table", "error");
+                    }
+                  }}
+                  className="flex-1 py-2.5 rounded-lg bg-rose-600 text-white hover:bg-rose-700 transition"
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showEditWarning && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setShowEditWarning(false)}
+            />
+
+            {/* Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-xl p-6 shadow-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-lg font-semibold text-rose-600">
+                    Edit Mode Activated
+                  </h3>
+
+                  {/* Subtle Countdown Ring */}
+                  <div className="relative w-6 h-6">
+                    <svg className="w-full h-full -rotate-90">
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        strokeWidth="2"
+                        className="text-zinc-200 dark:text-zinc-700"
+                        stroke="currentColor"
+                        fill="transparent"
+                      />
+                      <motion.circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        className="text-rose-500"
+                        stroke="currentColor"
+                        fill="transparent"
+                        strokeDasharray={2 * Math.PI * 10}
+                        initial={{ strokeDashoffset: 0 }}
+                        animate={{ strokeDashoffset: 2 * Math.PI * 10 }}
+                        transition={{ duration: 7, ease: "linear" }}
+                      />
+                    </svg>
+                  </div>
+                </div>
+
+                <button onClick={() => setShowEditWarning(false)}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-6 leading-relaxed">
+                You are entering floor configuration mode. You can move, resize,
+                rotate, delete tables and modify structural layout of your
+                floors.
+                <br />
+                <br />
+                Changes will only be applied after clicking Save. Proceed
+                carefully.
+              </p>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <GlobalProcessingOverlay
         isVisible={isProcessingTableAction}
         title="Updating Table Session"
