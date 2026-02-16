@@ -71,9 +71,11 @@ const StaffCard: React.FC<Props> = ({
   };
 
   const toggleLeave = async () => {
+    const currentLeaveDates = waiter.leaveDates ?? [];
+
     const updated = isOnLeave
-      ? waiter.leaveDates.filter((d) => d !== today)
-      : [...waiter.leaveDates, today];
+      ? currentLeaveDates.filter((d) => d !== today)
+      : [...currentLeaveDates, today];
 
     await safeUpdate({
       leaveDates: updated,
@@ -169,7 +171,7 @@ const StaffCard: React.FC<Props> = ({
           <div className="flex items-center gap-2">
             <input
               type="time"
-              value={waiter.shiftStart}
+              value={waiter.shiftStart ?? "09:00"}
               disabled={isMutating}
               onChange={(e) => safeUpdate({ shiftStart: e.target.value })}
               className="bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded text-xs disabled:opacity-50"
@@ -177,7 +179,7 @@ const StaffCard: React.FC<Props> = ({
             <span>-</span>
             <input
               type="time"
-              value={waiter.shiftEnd}
+              value={waiter.shiftEnd ?? "18:00"}
               disabled={isMutating}
               onChange={(e) => safeUpdate({ shiftEnd: e.target.value })}
               className="bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded text-xs disabled:opacity-50"
