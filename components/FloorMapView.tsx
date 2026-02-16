@@ -66,6 +66,8 @@ interface FloorMapViewProps {
   canRedo: boolean;
   activeOrderId: string | null;
   setActiveOrderId: (id: string | null) => void;
+  deletedTableIds: string[];
+  setDeletedTableIds: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 const FloorMapView: React.FC<FloorMapViewProps> = ({
@@ -107,6 +109,8 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
   activeOrderId,
   setActiveOrderId,
   isProcessingTableAction,
+  deletedTableIds,
+  setDeletedTableIds,
 }) => {
   const [tableSearch, setTableSearch] = useState("");
   const currentFloor = activeFloors.find((f) => f.id === activeFloorId);
@@ -1146,10 +1150,14 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                 <button
                   onClick={async () => {
                     try {
-                      await deleteDraftTable(deleteTargetId);
+                      deleteDraftTable(deleteTargetId);
+
+                      setDeletedTableIds((prev) => [...prev, deleteTargetId]);
+
                       setDeleteTargetId(null);
                       setSelectedTableId(null);
-                      toast("Table deleted successfully", "success");
+
+                      toast("Table marked for deletion", "success");
                     } catch (err) {
                       toast("Failed to delete table", "error");
                     }

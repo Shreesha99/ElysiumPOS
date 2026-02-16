@@ -78,8 +78,9 @@ const App: React.FC = () => {
 
   const [orderType, setOrderType] = useState<OrderType>("Dining");
 
-  const [mapRotation, setMapRotation] = useState(-20);
-  const [mapPitch, setMapPitch] = useState(45);
+  const [mapRotation, setMapRotation] = useState(0);
+  const [mapPitch, setMapPitch] = useState(10);
+  const [deletedTableIds, setDeletedTableIds] = useState<string[]>([]);
 
   const [insights, setInsights] = useState<BusinessInsight[]>([]);
   const [isLoadingInsights, setIsLoadingInsights] = useState(false);
@@ -168,13 +169,13 @@ const App: React.FC = () => {
     const unsubStaff = staffService.subscribe(setWaiters);
 
     const unsubTables = tableService.subscribe((data) => {
-      if (!isEditMode) {
+      if (!isEditMode && !isSavingLayout) {
         setTables(data);
       }
     });
 
     const unsubFloors = floorService.subscribe((data) => {
-      if (!isEditMode) {
+      if (!isEditMode && !isSavingLayout) {
         setFloors(data);
       }
     });
@@ -359,6 +360,8 @@ const App: React.FC = () => {
   };
 
   const cancelEdit = () => {
+    setDeletedTableIds([]);
+
     setIsEditMode(false);
     setSelectedTableId(null);
     setEditingFloorId(null);
@@ -368,8 +371,13 @@ const App: React.FC = () => {
   const saveEdit = async () => {
     try {
       setIsSavingLayout(true);
+      for (const id of deletedTableIds) {
+        await tableService.delete(id);
+      }
 
-      for (const table of draftTables) {
+      for (const table of draftTables.filter(
+        (t) => !deletedTableIds.includes(t.id)
+      )) {
         if (table.id.startsWith("temp-")) {
           await tableService.create({
             number: table.number,
@@ -413,8 +421,14 @@ const App: React.FC = () => {
       }
 
       // Realtime listeners will update tables and floors automatically
+      setDeletedTableIds([]);
+
+      // 🔥 Sync live state to draft BEFORE exiting edit mode
+      setTables(draftTables.filter((t) => !deletedTableIds.includes(t.id)));
+      setFloors(draftFloors);
 
       setIsEditMode(false);
+
       toast("Spatial map saved", "success");
     } catch (err) {
       toast("Save failed", "error");
@@ -811,6 +825,8 @@ const App: React.FC = () => {
           <FloorMapView
             activeOrderId={activeOrderId}
             setActiveOrderId={setActiveOrderId}
+            deletedTableIds={deletedTableIds}
+            setDeletedTableIds={setDeletedTableIds}
             isMobile={isMobile}
             activeFloors={activeFloors}
             activeTables={activeTables}
