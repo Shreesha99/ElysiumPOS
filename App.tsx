@@ -91,6 +91,36 @@ const App: React.FC = () => {
     Math.floor(Math.random() * 50) + 20
   );
 
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleFullSync = async () => {
+    try {
+      setIsSyncing(true);
+
+      toast("Secure cloud synchronization started", "info");
+
+      const [staff, tables, floors, menu, orders] = await Promise.all([
+        staffService.getAll(),
+        tableService.getAll(),
+        floorService.getAll(),
+        menuService.getAll(),
+        orderService.getAll(),
+      ]);
+
+      setWaiters(staff);
+      setTables(tables);
+      setFloors(floors);
+      setMenuItems(menu);
+      setOrders(orders);
+
+      toast("All systems synchronized successfully", "success");
+    } catch (err) {
+      toast("Synchronization failed", "error");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = authService.subscribe((u) => {
       setUser(u);
@@ -916,7 +946,10 @@ const App: React.FC = () => {
         toggleDarkMode={() => setDarkMode(!darkMode)}
         user={user}
         onLogout={handleLogout}
+        onSync={handleFullSync}
+        isSyncing={isSyncing}
       />
+
       <main className="flex-1 lg:ml-72 transition-all relative min-w-0 h-screen overflow-hidden">
         {renderContent()}
       </main>

@@ -1,15 +1,8 @@
-import {
-  collection,
-  getDocs,
-  doc,
-  updateDoc,
-  deleteDoc,
-  setDoc,
-} from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "./firebase";
 
-import { db, auth } from "./firebase";
+import { db } from "./firebase";
 import { getRestaurantId } from "./restaurantContext";
 import { Waiter } from "../types";
 
@@ -59,8 +52,7 @@ export const staffService = {
      DELETE STAFF
   ========================== */
   async delete(id: string) {
-    const restaurantId = await getRestaurantId();
-
-    return deleteDoc(doc(db, "restaurants", restaurantId, "waiters", id));
+    const deleteStaffUser = httpsCallable(functions, "deleteStaffUser");
+    await deleteStaffUser({ uid: id });
   },
 };

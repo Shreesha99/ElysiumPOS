@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Waiter } from "@/types";
 import {
   Trash2,
@@ -7,7 +7,10 @@ import {
   Briefcase,
   CheckCircle2,
   User,
+  Loader2,
+  ChevronDown,
 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 
 interface Props {
   waiter: Waiter;
@@ -34,23 +37,58 @@ const StaffCard: React.FC<Props> = ({
 }) => {
   const today = new Date().toISOString().split("T")[0];
   const isOnLeave = waiter.leaveDates.includes(today);
+  const [isMutating, setIsMutating] = useState(false);
 
-  const toggleLeave = () => {
-    let updated = [...waiter.leaveDates];
-    if (isOnLeave) {
-      updated = updated.filter((d) => d !== today);
-    } else {
-      updated.push(today);
+  const [roleOpen, setRoleOpen] = useState(false);
+  const roleRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (roleRef.current && !roleRef.current.contains(e.target as Node)) {
+        setRoleOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const safeUpdate = async (updates: Partial<Waiter>) => {
+    try {
+      setIsMutating(true);
+      await updateWaiter(waiter.id, updates);
+    } finally {
+      setIsMutating(false);
     }
+  };
 
-    updateWaiter(waiter.id, {
+  const safeDelete = async () => {
+    try {
+      setIsMutating(true);
+      await deleteWaiter(waiter.id);
+    } finally {
+      setIsMutating(false);
+    }
+  };
+
+  const toggleLeave = async () => {
+    const updated = isOnLeave
+      ? waiter.leaveDates.filter((d) => d !== today)
+      : [...waiter.leaveDates, today];
+
+    await safeUpdate({
       leaveDates: updated,
       status: isOnLeave ? "Offline" : "On Leave",
     });
   };
 
   return (
-    <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 transition hover:shadow-md">
+    <div className="relative group bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col p-6">
+      {isMutating && (
+        <div className="absolute inset-0 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-sm rounded-2xl flex items-center justify-center z-20">
+          <Loader2 size={18} className="animate-spin text-indigo-600" />
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-start mb-5">
         <div>
@@ -58,21 +96,52 @@ const StaffCard: React.FC<Props> = ({
             {waiter.name}
           </h3>
           <div className="flex items-center gap-2 mt-1 text-sm text-indigo-600 dark:text-indigo-400">
-            <Briefcase size={14} />
             {isEditMode ? (
-              <select
-                value={waiter.role}
-                onChange={(e) =>
-                  updateWaiter(waiter.id, { role: e.target.value })
-                }
-                className="bg-transparent border-none outline-none"
-              >
-                {ROLES.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </select>
+              <div ref={roleRef} className="relative">
+                <button
+                  disabled={isMutating}
+                  onClick={() => setRoleOpen((p) => !p)}
+                  className="flex items-center gap-2 text-sm font-medium text-indigo-600 dark:text-indigo-400"
+                >
+                  <Briefcase size={14} />
+                  {waiter.role}
+                  <ChevronDown
+                    size={14}
+                    className={`transition-transform ${
+                      roleOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                <AnimatePresence>
+                  {roleOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute left-0 mt-2 w-48 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 shadow-xl overflow-hidden z-50"
+                    >
+                      {ROLES.map((r) => (
+                        <button
+                          key={r}
+                          onClick={() => {
+                            safeUpdate({ role: r });
+                            setRoleOpen(false);
+                          }}
+                          className={`w-full text-left px-4 py-3 text-sm transition ${
+                            waiter.role === r
+                              ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400"
+                              : "hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200"
+                          }`}
+                        >
+                          {r}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             ) : (
               waiter.role
             )}
@@ -81,7 +150,7 @@ const StaffCard: React.FC<Props> = ({
 
         {isEditMode && (
           <button
-            onClick={() => deleteWaiter(waiter.id)}
+            onClick={safeDelete}
             className="p-2 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition"
           >
             <Trash2 size={16} />
@@ -101,19 +170,17 @@ const StaffCard: React.FC<Props> = ({
             <input
               type="time"
               value={waiter.shiftStart}
-              onChange={(e) =>
-                updateWaiter(waiter.id, { shiftStart: e.target.value })
-              }
-              className="bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded text-xs"
+              disabled={isMutating}
+              onChange={(e) => safeUpdate({ shiftStart: e.target.value })}
+              className="bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded text-xs disabled:opacity-50"
             />
             <span>-</span>
             <input
               type="time"
               value={waiter.shiftEnd}
-              onChange={(e) =>
-                updateWaiter(waiter.id, { shiftEnd: e.target.value })
-              }
-              className="bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded text-xs"
+              disabled={isMutating}
+              onChange={(e) => safeUpdate({ shiftEnd: e.target.value })}
+              className="bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded text-xs disabled:opacity-50"
             />
           </div>
         ) : (
@@ -131,14 +198,21 @@ const StaffCard: React.FC<Props> = ({
         </div>
 
         <button
+          disabled={isMutating}
           onClick={toggleLeave}
-          className={`px-3 py-1.5 rounded-lg text-xs transition ${
+          className={`px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-2 ${
             isOnLeave
               ? "bg-rose-500 text-white"
               : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700"
           }`}
         >
-          {isOnLeave ? "On Leave" : "Mark Leave"}
+          {isMutating ? (
+            <Loader2 size={12} className="animate-spin" />
+          ) : isOnLeave ? (
+            "On Leave"
+          ) : (
+            "Mark Leave"
+          )}
         </button>
       </div>
 
@@ -146,7 +220,7 @@ const StaffCard: React.FC<Props> = ({
       <button
         disabled={isEditMode}
         onClick={() =>
-          updateWaiter(waiter.id, {
+          safeUpdate({
             status: waiter.status === "Active" ? "Offline" : "Active",
           })
         }

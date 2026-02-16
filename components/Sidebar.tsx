@@ -12,6 +12,7 @@ import {
   UserCheck,
   MoreHorizontal,
   CircleHelp,
+  RefreshCcw,
 } from "lucide-react";
 import { AppUser } from "@/services/authService";
 import BrandIcon from "@/components/ui/BrandIcon";
@@ -23,6 +24,8 @@ interface SidebarProps {
   toggleDarkMode: () => void;
   user: AppUser | null;
   onLogout: () => void;
+  onSync: () => void;
+  isSyncing: boolean;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -32,13 +35,15 @@ const Sidebar: React.FC<SidebarProps> = ({
   toggleDarkMode,
   user,
   onLogout,
+  onSync,
+  isSyncing,
 }) => {
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "pos", label: "Order Hub", icon: HandPlatter },
     { id: "tables", label: "Floor Map", icon: TableIcon },
     { id: "waiters", label: "Staff", icon: UserCheck },
-    { id: "inventory", label: "Assets", icon: Database },
+    { id: "inventory", label: "Inventory", icon: Database },
     { id: "insights", label: "AI Strategy", icon: Sparkles },
     { id: "support", label: "Customer Support", icon: CircleHelp },
   ];
@@ -94,6 +99,27 @@ const Sidebar: React.FC<SidebarProps> = ({
         {/* FOOTER */}
         <div className="px-6 py-6 border-t border-zinc-200 dark:border-zinc-900 space-y-4">
           {/* THEME */}
+          {/* SYNC BUTTON */}
+          <button
+            onClick={onSync}
+            disabled={isSyncing}
+            className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl transition ${
+              isSyncing
+                ? "bg-indigo-100 dark:bg-indigo-900/30 cursor-not-allowed opacity-70"
+                : "bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/30"
+            }`}
+          >
+            {isSyncing ? (
+              <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <RefreshCcw size={16} className="text-indigo-600" />
+            )}
+
+            <span className="text-sm font-semibold text-indigo-600">
+              {isSyncing ? "Synchronizing..." : "Secure Cloud Sync"}
+            </span>
+          </button>
+
           <div className="w-full">
             <div className="flex w-full bg-zinc-100 dark:bg-zinc-900 rounded-xl p-1">
               {/* Light */}
@@ -210,6 +236,28 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             <div className="border-t border-zinc-200 dark:border-zinc-800" />
+            <button
+              onClick={() => {
+                onSync();
+                setMobileMenuOpen(false);
+              }}
+              disabled={isSyncing}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition ${
+                isSyncing
+                  ? "bg-indigo-100 dark:bg-indigo-900/30 cursor-not-allowed opacity-70"
+                  : "bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/30"
+              }`}
+            >
+              {isSyncing ? (
+                <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <RefreshCcw size={18} className="text-indigo-600" />
+              )}
+
+              <span className="text-sm font-semibold text-indigo-600">
+                {isSyncing ? "Synchronizing..." : "Secure Cloud Sync"}
+              </span>
+            </button>
 
             <div className="w-full">
               <div className="flex w-full bg-zinc-100 dark:bg-zinc-900 rounded-xl p-1">

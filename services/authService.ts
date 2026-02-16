@@ -32,7 +32,6 @@ const mapUser = async (firebaseUser: FirebaseUser): Promise<AppUser> => {
   const data = userDoc.data();
 
   if (!data.restaurantId) {
-    await signOut(auth);
     throw new Error("Restaurant not assigned");
   }
 
