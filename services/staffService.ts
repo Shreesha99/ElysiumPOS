@@ -4,6 +4,7 @@ import { functions } from "./firebase";
 import { db } from "./firebase";
 import { getRestaurantId } from "./restaurantContext";
 import { Waiter } from "../types";
+import { onSnapshot } from "firebase/firestore";
 
 export const staffService = {
   /* =========================
@@ -20,6 +21,30 @@ export const staffService = {
       id: d.id,
       ...d.data(),
     })) as Waiter[];
+  },
+
+  /* =========================
+   SUBSCRIBE REALTIME STAFF
+========================== */
+  subscribe(callback: (data: Waiter[]) => void) {
+    let unsubscribe: (() => void) | null = null;
+
+    getRestaurantId().then((restaurantId) => {
+      const colRef = collection(db, "restaurants", restaurantId, "waiters");
+
+      unsubscribe = onSnapshot(colRef, (snapshot) => {
+        const data = snapshot.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        })) as Waiter[];
+
+        callback(data);
+      });
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   },
 
   /* =========================

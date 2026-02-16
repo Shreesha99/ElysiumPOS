@@ -6,6 +6,7 @@ import {
   updateDoc,
   deleteDoc,
   getDoc,
+  onSnapshot,
 } from "firebase/firestore";
 
 import { db } from "./firebase";
@@ -37,6 +38,27 @@ export const orderService = {
       id: d.id,
       ...d.data(),
     }));
+  },
+
+  subscribe(callback: (data: any[]) => void) {
+    let unsubscribe: (() => void) | null = null;
+
+    getRestaurantId().then((restaurantId) => {
+      const colRef = collection(db, "restaurants", restaurantId, "orders");
+
+      unsubscribe = onSnapshot(colRef, (snapshot) => {
+        const data = snapshot.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        }));
+
+        callback(data);
+      });
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   },
 
   async update(orderId: string, data: any) {

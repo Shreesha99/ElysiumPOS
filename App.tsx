@@ -165,24 +165,37 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!user) return;
 
-    const loadRestaurantData = async () => {
-      const [staff, tables, floors, menu, orders] = await Promise.all([
-        staffService.getAll(),
-        tableService.getAll(),
-        floorService.getAll(),
-        menuService.getAll(),
-        orderService.getAll(),
-      ]);
+    const unsubStaff = staffService.subscribe(setWaiters);
 
-      setWaiters(staff);
-      setTables(tables);
-      setFloors(floors);
-      setMenuItems(menu);
-      setOrders(orders);
+    const unsubTables = tableService.subscribe((data) => {
+      if (!isEditMode) {
+        setTables(data);
+      }
+    });
+
+    const unsubFloors = floorService.subscribe((data) => {
+      if (!isEditMode) {
+        setFloors(data);
+      }
+    });
+
+    const unsubMenu = menuService.subscribe(setMenuItems);
+
+    const unsubOrders = orderService.subscribe((data) => {
+      if (!isSubmittingOrder) {
+        setOrders(data);
+      }
+    });
+
+    return () => {
+      unsubStaff();
+      unsubTables();
+      unsubFloors();
+      unsubMenu();
+      unsubOrders();
     };
+  }, [user, isEditMode, isSubmittingOrder]);
 
-    loadRestaurantData();
-  }, [user]);
   useEffect(() => {
     localStorage.setItem("elysium_active_tab", activeTab);
   }, [activeTab]);
@@ -399,11 +412,7 @@ const App: React.FC = () => {
         }
       }
 
-      const updatedTables = await tableService.getAll();
-      const updatedFloors = await floorService.getAll();
-
-      setTables(updatedTables);
-      setFloors(updatedFloors);
+      // Realtime listeners will update tables and floors automatically
 
       setIsEditMode(false);
       toast("Spatial map saved", "success");
@@ -500,11 +509,7 @@ const App: React.FC = () => {
         setActiveOrderId(docRef.id);
       }
 
-      const updatedOrders = await orderService.getAll();
-      const updatedTables = await tableService.getAll();
-
-      setOrders(updatedOrders);
-      setTables(updatedTables);
+      // Realtime listeners will update orders and tables automatically
 
       setCart([]);
 
@@ -539,11 +544,7 @@ const App: React.FC = () => {
         currentOrderId: null,
       });
 
-      const updatedOrders = await orderService.getAll();
-      const updatedTables = await tableService.getAll();
-
-      setOrders(updatedOrders);
-      setTables(updatedTables);
+      // Realtime listeners will update orders and tables automatically
 
       toast("Bill settled successfully", "success");
     } catch (err) {
@@ -570,11 +571,7 @@ const App: React.FC = () => {
         currentOrderId: null,
       });
 
-      const updatedOrders = await orderService.getAll();
-      const updatedTables = await tableService.getAll();
-
-      setOrders(updatedOrders);
-      setTables(updatedTables);
+      // Realtime listeners will update orders and tables automatically
 
       toast("Session cancelled", "info");
     } catch (err) {
@@ -767,48 +764,30 @@ const App: React.FC = () => {
 
   const handleAddDish = async (dish: MenuItem) => {
     await menuService.create(dish);
-    const updated = await menuService.getAll();
-    setMenuItems(updated);
-
     toast(`${dish.name} registered`, "success");
   };
 
   const handleUpdateDish = async (id: string, updates: Partial<MenuItem>) => {
     await menuService.update(id, updates);
-    const updated = await menuService.getAll();
-    setMenuItems(updated);
-
     toast("Asset updated", "success");
   };
 
   const handleDeleteDish = async (id: string) => {
     await menuService.delete(id);
-    const updated = await menuService.getAll();
-    setMenuItems(updated);
-
     toast("Asset removed from registry", "info");
   };
 
   const addWaiter = async (name: string, email: string, password: string) => {
     await staffService.create(name, email, password);
-
-    const updated = await staffService.getAll();
-    setWaiters(updated);
-
     toast(`Staff ${name} added`, "success");
   };
 
   const updateWaiter = async (id: string, updates: Partial<Waiter>) => {
     await staffService.update(id, updates);
-    const updated = await staffService.getAll();
-    setWaiters(updated);
   };
 
   const deleteWaiter = async (id: string) => {
     await staffService.delete(id);
-    const updated = await staffService.getAll();
-    setWaiters(updated);
-
     toast("Staff member removed", "info");
   };
 

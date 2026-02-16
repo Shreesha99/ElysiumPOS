@@ -5,12 +5,33 @@ import {
   doc,
   updateDoc,
   deleteDoc,
+  onSnapshot,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { getRestaurantId } from "./restaurantContext";
 import { Floor } from "../types";
 
 export const floorService = {
+  subscribe(callback: (data: Floor[]) => void) {
+    let unsubscribe: (() => void) | null = null;
+
+    getRestaurantId().then((restaurantId) => {
+      const colRef = collection(db, "restaurants", restaurantId, "floors");
+
+      unsubscribe = onSnapshot(colRef, (snapshot) => {
+        const data = snapshot.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        })) as Floor[];
+
+        callback(data);
+      });
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  },
   async getAll(): Promise<Floor[]> {
     const restaurantId = await getRestaurantId();
 

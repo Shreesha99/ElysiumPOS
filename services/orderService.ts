@@ -5,6 +5,7 @@ import {
   doc,
   updateDoc,
   deleteDoc,
+  onSnapshot,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { getRestaurantId } from "./restaurantContext";
@@ -22,6 +23,27 @@ export const orderService = {
       id: d.id,
       ...d.data(),
     })) as Order[];
+  },
+
+  subscribe(callback: (data: Order[]) => void) {
+    let unsubscribe: (() => void) | null = null;
+
+    getRestaurantId().then((restaurantId) => {
+      const colRef = collection(db, "restaurants", restaurantId, "orders");
+
+      unsubscribe = onSnapshot(colRef, (snapshot) => {
+        const data = snapshot.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        })) as Order[];
+
+        callback(data);
+      });
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   },
 
   async create(order: Omit<Order, "id">) {
