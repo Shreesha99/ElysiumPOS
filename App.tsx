@@ -94,9 +94,16 @@ const App: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
 
   const handleFullSync = async () => {
+    if (isEditMode) {
+      toast(
+        "The 3D spatial editor is active. Save your changes or exit edit mode before synchronizing. Sync will reset the layout session.",
+        "error"
+      );
+      return;
+    }
+
     try {
       setIsSyncing(true);
-
       toast("Secure cloud synchronization started", "info");
 
       const [staff, tables, floors, menu, orders] = await Promise.all([

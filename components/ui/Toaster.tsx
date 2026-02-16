@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, AlertCircle, Info, X } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Info, X } from "lucide-react";
 
 export type ToastType = "success" | "error" | "info";
 
@@ -34,13 +34,28 @@ const ToastIcon = ({ type }: { type: ToastType }) => {
     case "success":
       return <CheckCircle2 size={18} className="text-emerald-500" />;
     case "error":
-      return <AlertCircle size={18} className="text-rose-500" />;
+      return <AlertTriangle size={18} className="text-rose-500" />;
     case "info":
+    default:
       return <Info size={18} className="text-indigo-500" />;
   }
 };
 
 const ToastItem = ({ t }: { t: Toast }) => {
+  const variantStyles =
+    t.type === "success"
+      ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800"
+      : t.type === "error"
+      ? "bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800"
+      : "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800";
+
+  const accentBar =
+    t.type === "success"
+      ? "bg-emerald-500"
+      : t.type === "error"
+      ? "bg-rose-500"
+      : "bg-indigo-500";
+
   return (
     <motion.div
       layout
@@ -51,34 +66,33 @@ const ToastItem = ({ t }: { t: Toast }) => {
       className="pointer-events-auto"
     >
       <div
-        className="
-          bg-white dark:bg-zinc-900
-          border border-zinc-200 dark:border-zinc-800
-          shadow-xl
-          rounded-xl
+        className={`
+          relative
+          rounded-2xl
           px-4 py-3
-          flex items-start gap-3
+          flex items-center gap-3
           min-w-[280px]
           max-w-[420px]
-        "
+          shadow-2xl
+          border
+          backdrop-blur-md
+          ${variantStyles}
+        `}
       >
-        <div className="mt-0.5">
+        {/* Icon */}
+        <div className="flex items-center justify-center">
           <ToastIcon type={t.type} />
         </div>
 
-        <div className="flex-1 text-sm font-medium text-zinc-800 dark:text-zinc-100">
+        {/* Message */}
+        <div className="flex-1 text-sm font-semibold text-zinc-800 dark:text-zinc-100 leading-snug">
           {t.message}
         </div>
 
+        {/* Close */}
         <button
           onClick={() => removeToast(t.id)}
-          className="
-            p-1 rounded-md
-            text-zinc-400
-            hover:text-zinc-700
-            dark:hover:text-white
-            transition
-          "
+          className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-white transition"
         >
           <X size={16} />
         </button>
