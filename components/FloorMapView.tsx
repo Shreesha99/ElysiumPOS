@@ -884,8 +884,7 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
               animate={isMobile ? { y: 0 } : { x: 0, opacity: 1 }}
               exit={isMobile ? { y: "100%" } : { x: 100, opacity: 0 }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className={`fixed lg:absolute right-0 bottom-0 lg:right-8 lg:top-8 lg:bottom-8 w-full lg:w-[420px] bg-white dark:bg-zinc-950 border-t lg:border border-zinc-200 dark:border-zinc-800
-              lg:rounded-2xl rounded-t-2xl p-6 shadow-xl z-[70] flex flex-col gap-6 max-h-[90vh] lg:max-h-none`}
+              className={`fixed bottom-6 left-1/2 -translate-x-1/2 w-[95%] max-w-2xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-2xl z-[70] flex flex-col gap-6 max-h-[70vh] overflow-hidden`}
             >
               <div className="flex items-center justify-between shrink-0">
                 <div className="min-w-0 flex-1">
@@ -1093,15 +1092,6 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                   </div>
                 )}
               </div>
-
-              {isEditMode && (
-                <button
-                  onClick={() => deleteDraftTable(selectedTable.id)}
-                  className="shrink-0 w-full py-4 bg-rose-50 dark:bg-rose-900/10 text-rose-500 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-rose-100 dark:border-rose-900/50"
-                >
-                  Delete Table
-                </button>
-              )}
             </motion.div>
           </>
         )}
