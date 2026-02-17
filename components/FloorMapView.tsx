@@ -793,7 +793,11 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
               <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6 lg:gap-8">
                 {filteredTables.map((table) => {
                   const order = orders.find(
-                    (o) => o.tableId === table.id && o.status !== "Paid"
+                    (o) =>
+                      o.tableId === table.id &&
+                      (o.status === "Pending" ||
+                        o.status === "Preparing" ||
+                        o.status === "Served")
                   );
                   return (
                     <motion.button
@@ -996,7 +1000,9 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                         const activeTableOrder = orders.find(
                           (o) =>
                             o.tableId === selectedTable.id &&
-                            o.status !== "Paid"
+                            (o.status === "Pending" ||
+                              o.status === "Preparing" ||
+                              o.status === "Served")
                         );
 
                         return activeTableOrder ? (
@@ -1015,7 +1021,7 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                             <div className="space-y-3 max-h-[200px] overflow-y-auto pr-2">
                               {activeTableOrder.items.map((i) => (
                                 <div
-                                  key={i.id}
+                                  key={`${i.menuItemId}-${i.name}`}
                                   className="flex justify-between text-sm"
                                 >
                                   <span className="text-zinc-600 dark:text-zinc-400">
@@ -1055,7 +1061,9 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                               const activeOrder = orders.find(
                                 (o) =>
                                   o.tableId === selectedTable.id &&
-                                  o.status !== "Paid"
+                                  (o.status === "Pending" ||
+                                    o.status === "Preparing" ||
+                                    o.status === "Served")
                               );
 
                               if (!activeOrder) return;

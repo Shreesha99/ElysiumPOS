@@ -30,6 +30,7 @@ import StaffView from "./components/StaffView/StaffView";
 import InventoryView from "./components/InventoryView/InventoryView";
 import InsightsView from "./components/InsightsView";
 import SupportView from "./components/SupportView";
+import KitchenView from "./components/KitchenView/KitchenView";
 
 const App: React.FC = () => {
   const [user, setUser] = useState<AppUser | null>(null);
@@ -119,7 +120,6 @@ const App: React.FC = () => {
       setTables(tables);
       setFloors(floors);
       setMenuItems(menu);
-      setOrders(orders);
 
       toast("All systems synchronized successfully", "success");
     } catch (err) {
@@ -143,11 +143,34 @@ const App: React.FC = () => {
 
     const order = orders.find((o) => o.id === activeOrderId);
     if (!order) return;
+    if (order.status === "Paid" || order.status === "Voided") {
+      setActiveOrderId(null);
+      setCart([]);
+      return;
+    }
 
-    setCart(order.items);
+    const restoredCart: CartItem[] = order.items.map((item) => {
+      const fullMenuItem = menuItems.find((mi) => mi.id === item.menuItemId);
+
+      return {
+        ...(fullMenuItem ?? {
+          id: item.menuItemId,
+          name: item.name,
+          description: "",
+          price: item.price,
+          category: "Starters",
+          image: "",
+          stock: 0,
+          foodType: "Veg",
+        }),
+        quantity: item.quantity,
+      };
+    });
+
+    setCart(restoredCart);
     setSelectedTableId(order.tableId || null);
     setOrderType(order.orderType);
-  }, [activeOrderId, orders]);
+  }, [activeOrderId, orders, menuItems]);
 
   useEffect(() => {
     if (!selectedTableId) return;
@@ -183,9 +206,7 @@ const App: React.FC = () => {
     const unsubMenu = menuService.subscribe(setMenuItems);
 
     const unsubOrders = orderService.subscribe((data) => {
-      if (!isSubmittingOrder) {
-        setOrders(data);
-      }
+      setOrders(data);
     });
 
     return () => {
@@ -238,15 +259,33 @@ const App: React.FC = () => {
     );
     const totalRevenue = settledOrders.reduce((acc, o) => acc + o.total, 0);
 
-    const pendingOrdersCount = orders.filter((o) => o.status !== "Paid").length;
+    const pendingOrdersCount = orders.filter(
+      (o) =>
+        o.status === "Pending" ||
+        o.status === "Preparing" ||
+        o.status === "Served"
+    ).length;
     const avgOrderValue =
       settledOrders.length > 0 ? totalRevenue / settledOrders.length : 0;
     const occupiedTables = tables.filter((t) => t.status === "Occupied").length;
     const occupancyRate = (occupiedTables / (tables.length || 1)) * 100;
-    const hourlySales = Array.from({ length: 12 }, (_, i) => ({
-      hour: `${i + 9}:00`,
-      value: Math.floor(Math.random() * 5000) + 1000,
+    const hourlyMap: Record<string, number> = {};
+
+    orders
+      .filter((o) => o.status === "Paid")
+      .forEach((order) => {
+        const hour =
+          order.createdAt.toDate().getHours().toString().padStart(2, "0") +
+          ":00";
+
+        hourlyMap[hour] = (hourlyMap[hour] || 0) + order.total;
+      });
+
+    const hourlySales = Object.entries(hourlyMap).map(([hour, value]) => ({
+      hour,
+      value,
     }));
+
     return {
       totalRevenue,
       pendingOrdersCount,
@@ -467,26 +506,47 @@ const App: React.FC = () => {
       const tax = subtotal * 0.12;
       const total = subtotal + tax;
 
-      const orderPayload: Omit<Order, "id"> = {
-        orderType,
-        items: [...cart],
+      const orderItems = cart.map((item) => ({
+        menuItemId: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        status: "Queued" as const,
+        station: "General" as const,
+      }));
+
+      const orderPayload: Omit<Order, "id" | "createdAt" | "updatedAt"> = {
+        tableId: orderType === "Dining" ? selectedTableId : null,
+        floorId: selectedTable ? selectedTable.floorId : null,
         status: orderType === "Takeaway" ? "Paid" : "Pending",
-        timestamp: new Date().toISOString(),
-        subtotal,
-        tax,
+        orderType,
+        items: orderItems,
         total,
-        ...(orderType === "Dining" && selectedTableId
-          ? { tableId: selectedTableId }
-          : {}),
+        waiterId: user?.id ?? undefined,
       };
 
       if (activeOrderId) {
         const existingOrder = orders.find((o) => o.id === activeOrderId);
-        if (existingOrder) {
+
+        if (!existingOrder) return;
+
+        // 🔒 Prevent editing after kitchen starts
+        if (existingOrder.status !== "Pending") {
+          toast(
+            "Order cannot be modified after kitchen processing begins",
+            "error"
+          );
+          return;
+        }
+
+        {
           const mergedItems = [...existingOrder.items];
 
           orderPayload.items.forEach((newItem) => {
-            const existing = mergedItems.find((i) => i.id === newItem.id);
+            const existing = mergedItems.find(
+              (i) => i.menuItemId === newItem.menuItemId
+            );
+
             if (existing) {
               existing.quantity += newItem.quantity;
             } else {
@@ -502,10 +562,7 @@ const App: React.FC = () => {
           const newTotal = newSubtotal + newTax;
 
           await orderService.update(activeOrderId, {
-            ...orderPayload,
             items: mergedItems,
-            subtotal: newSubtotal,
-            tax: newTax,
             total: newTotal,
           });
         }
@@ -543,7 +600,11 @@ const App: React.FC = () => {
 
   const clearTableBill = async (tableId: string) => {
     const orderToPay = orders.find(
-      (o) => o.tableId === tableId && o.status !== "Paid"
+      (o) =>
+        o.tableId === tableId &&
+        (o.status === "Pending" ||
+          o.status === "Preparing" ||
+          o.status === "Served")
     );
 
     if (!orderToPay) return;
@@ -570,7 +631,11 @@ const App: React.FC = () => {
 
   const voidTableOrder = async (tableId: string) => {
     const orderToVoid = orders.find(
-      (o) => o.tableId === tableId && o.status !== "Paid"
+      (o) =>
+        o.tableId === tableId &&
+        (o.status === "Pending" ||
+          o.status === "Preparing" ||
+          o.status === "Served")
     );
 
     if (!orderToVoid) return;
@@ -578,7 +643,7 @@ const App: React.FC = () => {
     try {
       setIsProcessingTableAction(true);
 
-      await orderService.delete(orderToVoid.id);
+      await orderService.void(orderToVoid.id, user?.id ?? "system");
 
       await tableService.update(tableId, {
         status: "Available",
@@ -930,6 +995,13 @@ const App: React.FC = () => {
         );
       case "support":
         return <SupportView />;
+      case "kitchen":
+        return (
+          <KitchenView
+            orders={orders}
+            updateItemStatus={orderService.updateItemStatus}
+          />
+        );
       default:
         return (
           <div className="p-10 text-zinc-500 uppercase tracking-widest text-xs font-bold">

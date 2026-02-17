@@ -37,7 +37,13 @@ const DashboardView: React.FC<DashboardViewProps> = ({
   /* ---------------- DERIVED METRICS ---------------- */
 
   const activeOrders = useMemo(
-    () => orders.filter((o) => o.status !== "Paid"),
+    () =>
+      orders.filter(
+        (o) =>
+          o.status === "Pending" ||
+          o.status === "Preparing" ||
+          o.status === "Served"
+      ),
     [orders]
   );
 

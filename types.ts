@@ -1,3 +1,5 @@
+import { Timestamp } from "firebase/firestore";
+
 export type Category =
   | "Starters"
   | "Mains"
@@ -56,17 +58,36 @@ export interface Table {
   rotation?: number;
 }
 
+export type KitchenStation = "Grill" | "Fry" | "Drinks" | "Dessert" | "General";
+
+export interface OrderItem {
+  menuItemId: string;
+  name: string;
+  price: number;
+  quantity: number;
+
+  status: "Queued" | "Preparing" | "Ready" | "Served";
+  station: KitchenStation;
+  startedAt?: Timestamp;
+  completedAt?: Timestamp;
+}
+
 export interface Order {
   id: string;
-  tableId?: string;
-  orderType: OrderType;
-  customerName?: string;
-  items: CartItem[];
-  status: "Pending" | "In Preparation" | "Served" | "Paid";
-  timestamp: string;
+  tableId: string | null;
+  floorId: string | null;
+  status: "Pending" | "Preparing" | "Served" | "Paid" | "Voided";
+  orderType: "Dining" | "Takeaway";
+  items: OrderItem[];
   total: number;
-  subtotal: number;
-  tax: number;
+  waiterId?: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  startedPreparingAt?: Timestamp;
+  servedAt?: Timestamp;
+  paidAt?: Timestamp;
+  voidedAt?: Timestamp;
+  voidedBy?: string;
 }
 
 export interface BusinessInsight {
