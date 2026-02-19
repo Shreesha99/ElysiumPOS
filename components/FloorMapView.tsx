@@ -184,6 +184,27 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
     return () => clearTimeout(timeout);
   }, [showEditWarning]);
 
+  const handleTableRenameFinish = (table: Table) => {
+    const number = table.number;
+
+    if (!number || number <= 0) {
+      toast("Table number cannot be empty", "error");
+      return;
+    }
+
+    const duplicate = activeTables.some(
+      (t) =>
+        t.id !== table.id && t.floorId === table.floorId && t.number === number
+    );
+
+    if (duplicate) {
+      toast("Table number already exists on this floor", "error");
+      return;
+    }
+
+    setRenamingTableId(null);
+  };
+
   const renderTableNode = (table: Table) => {
     const isSelected = isEditMode
       ? editSelectedTableId === table.id
@@ -249,7 +270,28 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                     number: parseInt(e.target.value) || 0,
                   })
                 }
-                onBlur={() => setRenamingTableId(null)}
+                onBlur={() => {
+                  const number = table.number;
+
+                  if (!number || number <= 0) {
+                    toast("Table number cannot be empty", "error");
+                    return;
+                  }
+
+                  const duplicate = activeTables.some(
+                    (t) =>
+                      t.id !== table.id &&
+                      t.floorId === table.floorId &&
+                      t.number === number
+                  );
+
+                  if (duplicate) {
+                    toast("Table number already exists on this floor", "error");
+                    return;
+                  }
+
+                  setRenamingTableId(null);
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") setRenamingTableId(null);
                 }}
@@ -296,6 +338,7 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
               <div
                 className="absolute -top-6 -left-6 w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white cursor-move shadow-2xl border-4 border-white z-[60]"
                 onMouseDown={(e) => {
+                  if (!isEditMode || renamingTableId) return;
                   e.stopPropagation();
                   e.preventDefault();
                   const startX = e.clientX,
@@ -350,6 +393,7 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
               <div
                 className="absolute -bottom-6 -right-6 w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white cursor-se-resize shadow-2xl border-4 border-white z-[60]"
                 onMouseDown={(e) => {
+                  if (!isEditMode || renamingTableId) return;
                   e.stopPropagation();
                   e.preventDefault();
                   const startX = e.clientX,
@@ -523,7 +567,29 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                     onChange={(e) =>
                       updateDraftFloor(f.id, { name: e.target.value })
                     }
-                    onBlur={() => setEditingFloorId(null)}
+                    onBlur={() => {
+                      const trimmed = f.name.trim();
+
+                      if (!trimmed) {
+                        toast("Floor name cannot be empty", "error");
+                        return;
+                      }
+
+                      const duplicate = activeFloors.some(
+                        (floor) =>
+                          floor.id !== f.id &&
+                          floor.name.trim().toLowerCase() ===
+                            trimmed.toLowerCase()
+                      );
+
+                      if (duplicate) {
+                        toast("Floor name already exists", "error");
+                        return;
+                      }
+
+                      updateDraftFloor(f.id, { name: trimmed });
+                      setEditingFloorId(null);
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") setEditingFloorId(null);
                     }}
@@ -727,6 +793,7 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
             <motion.div
               className="relative w-full h-full flex items-center justify-center"
               onWheel={(e) => {
+                if (!isEditMode || renamingTableId) return;
                 e.preventDefault();
 
                 const delta = e.deltaY > 0 ? -0.08 : 0.08;
@@ -744,6 +811,7 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                 y: mapOffset.y,
               }}
               onMouseDown={(e) => {
+                if (!isEditMode || renamingTableId) return;
                 e.preventDefault();
                 setIsDragging(true);
                 setDragStart({ x: e.clientX, y: e.clientY });
@@ -757,6 +825,7 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                 setDragStart(null);
               }}
               onMouseMove={(e) => {
+                if (!isEditMode || renamingTableId) return;
                 if (!isDragging || !dragStart) return;
 
                 const dx = e.clientX - dragStart.x;
@@ -1002,10 +1071,37 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                           <Trash2 size={14} />
                         </div>
                       )}
-                      <span className="text-2xl sm:text-4xl font-black uppercase tracking-tighter">
-                        {floorPrefix}
-                        {table.number}
-                      </span>
+                      {renamingTableId === table.id ? (
+                        <input
+                          autoFocus
+                          type="number"
+                          value={table.number}
+                          onChange={(e) =>
+                            updateDraftTable(table.id, {
+                              number: parseInt(e.target.value) || 0,
+                            })
+                          }
+                          onBlur={() => handleTableRenameFinish(table)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter")
+                              handleTableRenameFinish(table);
+                            if (e.key === "Escape") setRenamingTableId(null);
+                          }}
+                          className="w-20 text-center bg-white dark:bg-zinc-900 text-black dark:text-white rounded-lg px-2 py-1 text-2xl font-black outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      ) : (
+                        <span
+                          className="text-2xl sm:text-4xl font-black uppercase tracking-tighter"
+                          onDoubleClick={(e) => {
+                            e.stopPropagation();
+                            if (isEditMode) setRenamingTableId(table.id);
+                          }}
+                        >
+                          {floorPrefix}
+                          {table.number}
+                        </span>
+                      )}
+
                       <div className="flex items-center gap-1.5 text-[8px] sm:text-[10px] font-black uppercase opacity-60">
                         <Users size={12} /> {table.capacity}
                       </div>
