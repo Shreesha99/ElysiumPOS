@@ -14,6 +14,16 @@ interface Props {
 
 const KitchenItemCard: React.FC<Props> = ({ ticket, updateItemStatus }) => {
   const [elapsed, setElapsed] = useState(0);
+  const nextStatus =
+    ticket.status === "Queued"
+      ? "Preparing"
+      : ticket.status === "Preparing"
+      ? "Ready"
+      : "Served";
+
+  const handleAdvance = () => {
+    updateItemStatus(ticket.orderId, ticket.menuItemId, nextStatus);
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -34,7 +44,11 @@ const KitchenItemCard: React.FC<Props> = ({ ticket, updateItemStatus }) => {
       layout
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`rounded-2xl p-4 border shadow-sm transition
+      whileTap={{ scale: 0.96 }}
+      onClick={handleAdvance}
+      className={`cursor-pointer select-none relative rounded-2xl p-4
+      border shadow-sm transition
+
         bg-white dark:bg-zinc-900
         ${
           urgent
@@ -42,6 +56,17 @@ const KitchenItemCard: React.FC<Props> = ({ ticket, updateItemStatus }) => {
             : "border-zinc-200 dark:border-zinc-800"
         }`}
     >
+      <div
+        className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl
+    ${
+      ticket.status === "Queued"
+        ? "bg-zinc-400"
+        : ticket.status === "Preparing"
+        ? "bg-amber-500"
+        : "bg-emerald-500"
+    }`}
+      />
+
       <div className="flex justify-between mb-2">
         <div className="font-semibold text-zinc-900 dark:text-white">
           {ticket.quantity} × {ticket.name}
@@ -60,39 +85,17 @@ const KitchenItemCard: React.FC<Props> = ({ ticket, updateItemStatus }) => {
         {ticket.tableRef}
       </div>
 
-      <div className="flex gap-2">
-        {ticket.status === "Queued" && (
-          <button
-            onClick={() =>
-              updateItemStatus(ticket.orderId, ticket.name, "Preparing")
-            }
-            className="px-3 py-1 text-xs rounded-md bg-amber-600 text-white"
-          >
-            Start
-          </button>
-        )}
-
-        {ticket.status === "Preparing" && (
-          <button
-            onClick={() =>
-              updateItemStatus(ticket.orderId, ticket.name, "Ready")
-            }
-            className="px-3 py-1 text-xs rounded-md bg-emerald-600 text-white"
-          >
-            Ready
-          </button>
-        )}
-
-        {ticket.status === "Ready" && (
-          <button
-            onClick={() =>
-              updateItemStatus(ticket.orderId, ticket.name, "Served")
-            }
-            className="px-3 py-1 text-xs rounded-md bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-          >
-            Serve
-          </button>
-        )}
+      <div
+        className={`mt-2 text-[10px] uppercase tracking-widest font-semibold
+    ${
+      ticket.status === "Queued"
+        ? "text-zinc-500"
+        : ticket.status === "Preparing"
+        ? "text-amber-600"
+        : "text-emerald-600"
+    }`}
+      >
+        Tap to {nextStatus.toLowerCase()}
       </div>
     </motion.div>
   );

@@ -530,15 +530,6 @@ const App: React.FC = () => {
 
         if (!existingOrder) return;
 
-        // 🔒 Prevent editing after kitchen starts
-        if (existingOrder.status !== "Pending") {
-          toast(
-            "Order cannot be modified after kitchen processing begins",
-            "error"
-          );
-          return;
-        }
-
         {
           const mergedItems = [...existingOrder.items];
 
@@ -560,10 +551,10 @@ const App: React.FC = () => {
           );
           const newTax = newSubtotal * 0.12;
           const newTotal = newSubtotal + newTax;
-
           await orderService.update(activeOrderId, {
             items: mergedItems,
             total: newTotal,
+            status: "Pending", // 🔥 FORCE BACK TO PENDING
           });
         }
       } else {

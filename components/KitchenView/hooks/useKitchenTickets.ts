@@ -3,6 +3,7 @@ import { Order } from "@/types";
 
 export interface KitchenTicket {
   orderId: string;
+  menuItemId: string; // ADD THIS
   tableRef: string;
   name: string;
   quantity: number;
@@ -31,6 +32,7 @@ export const useKitchenTickets = (orders: Order[], stationFilter: string) => {
 
         tickets.push({
           orderId: order.id,
+          menuItemId: item.menuItemId,
           tableRef:
             order.orderType === "Dining" ? `T${order.tableId}` : "Takeaway",
           name: item.name,

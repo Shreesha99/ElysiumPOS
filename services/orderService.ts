@@ -139,8 +139,24 @@ export const orderService = {
       };
     });
 
+    // 🔥 derive new order status from items
+    const allServed = updatedItems.every((i) => i.status === "Served");
+    const anyPreparing = updatedItems.some((i) => i.status === "Preparing");
+
+    let newOrderStatus: Order["status"] = order.status;
+
+    if (allServed) {
+      newOrderStatus = "Served";
+    } else if (anyPreparing) {
+      newOrderStatus = "Preparing";
+    } else {
+      newOrderStatus = "Pending";
+    }
+
     return updateDoc(orderRef, {
       items: updatedItems,
+      status: newOrderStatus, // 🔥 THIS WAS MISSING
+      ...(allServed && { servedAt: serverTimestamp() }),
       updatedAt: serverTimestamp(),
     });
   },

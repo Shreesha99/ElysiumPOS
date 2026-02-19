@@ -22,7 +22,7 @@ const KitchenColumn: React.FC<Props> = ({
       <div className="flex flex-col gap-4">
         {tickets.map((t, i) => (
           <KitchenItemCard
-            key={`${t.orderId}-${i}`}
+            key={`${t.orderId}-${t.menuItemId}`}
             ticket={t}
             updateItemStatus={updateItemStatus}
           />
