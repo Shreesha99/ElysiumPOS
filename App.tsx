@@ -518,7 +518,8 @@ const App: React.FC = () => {
       const orderPayload: Omit<Order, "id" | "createdAt" | "updatedAt"> = {
         tableId: orderType === "Dining" ? selectedTableId : null,
         floorId: selectedTable ? selectedTable.floorId : null,
-        status: orderType === "Takeaway" ? "Paid" : "Pending",
+        status: "Pending",
+        paymentStatus: orderType === "Takeaway" ? "Paid" : "Unpaid",
         orderType,
         items: orderItems,
         total,
@@ -591,11 +592,7 @@ const App: React.FC = () => {
 
   const clearTableBill = async (tableId: string) => {
     const orderToPay = orders.find(
-      (o) =>
-        o.tableId === tableId &&
-        (o.status === "Pending" ||
-          o.status === "Preparing" ||
-          o.status === "Served")
+      (o) => o.tableId === tableId && o.status === "Served"
     );
 
     if (!orderToPay) return;
@@ -603,18 +600,24 @@ const App: React.FC = () => {
     try {
       setIsProcessingTableAction(true);
 
-      await orderService.update(orderToPay.id, { status: "Paid" });
+      await orderService.update(orderToPay.id, {
+        status: "Paid",
+        paymentStatus: "Paid",
+      });
 
       await tableService.update(tableId, {
         status: "Available",
         currentOrderId: null,
       });
 
-      // Realtime listeners will update orders and tables automatically
+      setActiveOrderId(null);
+      setSelectedTableId(null);
+      setCart([]);
 
       toast("Bill settled successfully", "success");
-    } catch (err) {
+    } catch (err: any) {
       toast("Failed to settle bill", "error");
+      console.error(err?.message);
     } finally {
       setIsProcessingTableAction(false);
     }

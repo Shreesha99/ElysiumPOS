@@ -115,6 +115,15 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
   const [tableSearch, setTableSearch] = useState("");
   const currentFloor = activeFloors.find((f) => f.id === activeFloorId);
   const selectedTable = activeTables.find((t) => t.id === selectedTableId);
+  const activeTableOrder = selectedTable
+    ? orders.find(
+        (o) =>
+          o.tableId === selectedTable.id &&
+          (o.status === "Pending" ||
+            o.status === "Preparing" ||
+            o.status === "Served")
+      )
+    : null;
 
   // If mobile and in 3D mode, force 2D or show restriction
   const show3DRestriction = isMobile && viewMode === "3d";
@@ -996,64 +1005,60 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                         )}
                       </div>
 
-                      {(() => {
-                        const activeTableOrder = orders.find(
-                          (o) =>
-                            o.tableId === selectedTable.id &&
-                            (o.status === "Pending" ||
-                              o.status === "Preparing" ||
-                              o.status === "Served")
-                        );
-
-                        return activeTableOrder ? (
-                          <>
-                            {/* TOTAL */}
-                            <div className="mb-6">
-                              <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                Current Total
-                              </p>
-                              <p className="text-2xl font-semibold text-indigo-600 dark:text-indigo-400 mt-1">
-                                ₹{activeTableOrder.total.toLocaleString()}
-                              </p>
-                            </div>
-
-                            {/* ITEM LIST */}
-                            <div className="space-y-3 max-h-[200px] overflow-y-auto pr-2">
-                              {activeTableOrder.items.map((i) => (
-                                <div
-                                  key={`${i.menuItemId}-${i.name}`}
-                                  className="flex justify-between text-sm"
-                                >
-                                  <span className="text-zinc-600 dark:text-zinc-400">
-                                    {i.quantity} × {i.name}
-                                  </span>
-                                  <span className="font-medium dark:text-white">
-                                    ₹{(i.price * i.quantity).toLocaleString()}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </>
-                        ) : (
-                          <div className="flex flex-col items-center justify-center py-12 text-zinc-400 dark:text-zinc-600">
-                            <XCircle size={36} />
-                            <p className="mt-4 text-sm">
-                              No active order for this table
+                      {activeTableOrder ? (
+                        <>
+                          <div className="mb-6">
+                            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                              Current Total
+                            </p>
+                            <p className="text-2xl font-semibold text-indigo-600 dark:text-indigo-400 mt-1">
+                              ₹{activeTableOrder.total.toLocaleString()}
                             </p>
                           </div>
-                        );
-                      })()}
+
+                          <div className="space-y-3 max-h-[200px] overflow-y-auto pr-2">
+                            {activeTableOrder.items.map((i) => (
+                              <div
+                                key={`${i.menuItemId}-${i.name}`}
+                                className="flex justify-between text-sm"
+                              >
+                                <span className="text-zinc-600 dark:text-zinc-400">
+                                  {i.quantity} × {i.name}
+                                </span>
+                                <span className="font-medium dark:text-white">
+                                  ₹{(i.price * i.quantity).toLocaleString()}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-12 text-zinc-400 dark:text-zinc-600">
+                          <XCircle size={36} />
+                          <p className="mt-4 text-sm">
+                            No active order for this table
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     {/* ACTIONS */}
                     <div className="space-y-4 pt-2">
-                      {selectedTable.status === "Occupied" ? (
+                      {selectedTable.status === "Occupied" &&
+                      activeTableOrder ? (
                         <>
                           <button
                             onClick={() => clearTableBill(selectedTable.id)}
-                            className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition"
+                            disabled={activeTableOrder.status !== "Served"}
+                            className={`w-full py-3 rounded-xl font-medium transition ${
+                              activeTableOrder.status === "Served"
+                                ? "bg-indigo-600 hover:bg-indigo-700 text-white"
+                                : "bg-zinc-300 text-zinc-500 cursor-not-allowed"
+                            }`}
                           >
-                            Settle Bill
+                            {activeTableOrder.status === "Served"
+                              ? "Settle Bill"
+                              : "Waiting for Kitchen"}
                           </button>
 
                           <button

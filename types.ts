@@ -78,6 +78,7 @@ export interface Order {
   floorId: string | null;
   status: "Pending" | "Preparing" | "Served" | "Paid" | "Voided";
   orderType: "Dining" | "Takeaway";
+  paymentStatus: "Unpaid" | "Paid";
   items: OrderItem[];
   total: number;
   waiterId?: string;
