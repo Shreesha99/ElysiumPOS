@@ -27,6 +27,7 @@ import { Table, Floor, Order } from "@/types";
 import SectionHeader from "@/components/ui/SectionHeader";
 import GlobalProcessingOverlay from "@/components/ui/GlobalProcessingOverlay";
 import { toast } from "./ui/Toaster";
+import ReceiptModal from "./ui/ReceiptModal";
 
 const GRID_SIZE = 40;
 
@@ -141,6 +142,10 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(
     null
   );
+  const [selectedReceiptOrder, setSelectedReceiptOrder] =
+    useState<Order | null>(null);
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+
   const [mapOffset, setMapOffset] = useState({ x: 0, y: 0 });
 
   const selectedTable = activeTables.find((t) => t.id === selectedTableId);
@@ -152,6 +157,22 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
           o.status !== "Voided"
       )
     : null;
+  const RECEIPT_HISTORY_LIMIT = 2; // 🔥 change this number anytime
+
+  const paidOrdersForTable = selectedTable
+    ? orders
+        .filter(
+          (o) =>
+            o.tableId === selectedTable.id &&
+            o.paymentStatus === "Paid" &&
+            o.status !== "Voided"
+        )
+        .sort(
+          (a, b) =>
+            b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime()
+        )
+        .slice(0, RECEIPT_HISTORY_LIMIT) // 🔥 limit applied
+    : [];
 
   // If mobile and in 3D mode, force 2D or show restriction
   const show3DRestriction = isMobile && viewMode === "3d";
@@ -1271,16 +1292,6 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                   <div className="space-y-8">
                     <div className="p-5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900">
                       <div className="flex items-center justify-between mb-6">
-                        <div>
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
-                            Active Session
-                          </p>
-                          <h4 className="text-lg font-semibold dark:text-white">
-                            Table {floorPrefix}
-                            {selectedTable.number}
-                          </h4>
-                        </div>
-
                         {activeTableOrder && (
                           <span className="flex items-center gap-2 text-emerald-600 text-sm font-medium">
                             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -1295,25 +1306,19 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                             <p className="text-sm text-zinc-500 dark:text-zinc-400">
                               Current Total
                             </p>
+                            <button
+                              onClick={() => {
+                                setSelectedReceiptOrder(activeTableOrder);
+                                setIsReceiptModalOpen(true);
+                              }}
+                              className="mt-4 px-4 py-2 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition"
+                            >
+                              View Live Bill
+                            </button>
+
                             <p className="text-2xl font-semibold text-indigo-600 dark:text-indigo-400 mt-1">
                               ₹{activeTableOrder.total.toLocaleString()}
                             </p>
-                          </div>
-
-                          <div className="space-y-3 max-h-[250px] overflow-y-auto pr-2">
-                            {activeTableOrder.items.map((i) => (
-                              <div
-                                key={`${i.menuItemId}-${i.name}`}
-                                className="flex justify-between text-sm"
-                              >
-                                <span className="text-zinc-600 dark:text-zinc-400">
-                                  {i.quantity} × {i.name}
-                                </span>
-                                <span className="font-medium dark:text-white">
-                                  ₹{(i.price * i.quantity).toLocaleString()}
-                                </span>
-                              </div>
-                            ))}
                           </div>
                         </>
                       ) : (
@@ -1325,6 +1330,41 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                         </div>
                       )}
                     </div>
+                    {paidOrdersForTable.length > 0 && (
+                      <div className="p-5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+                        <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-4">
+                          Receipt History
+                        </p>
+
+                        <div className="space-y-3 max-h-[200px] overflow-y-auto">
+                          {paidOrdersForTable.map((order) => (
+                            <div
+                              key={order.id}
+                              className="flex items-center justify-between bg-zinc-50 dark:bg-zinc-800 px-4 py-3 rounded-xl"
+                            >
+                              <div>
+                                <p className="text-sm font-semibold dark:text-white">
+                                  ₹{order.total.toLocaleString()}
+                                </p>
+                                <p className="text-xs text-zinc-500">
+                                  Order ID: {order.id.slice(0, 8)}
+                                </p>
+                              </div>
+
+                              <button
+                                onClick={() => {
+                                  setSelectedReceiptOrder(order);
+                                  setIsReceiptModalOpen(true);
+                                }}
+                                className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium hover:bg-indigo-700 transition"
+                              >
+                                View
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1640,6 +1680,18 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isReceiptModalOpen && selectedReceiptOrder && (
+          <ReceiptModal
+            order={selectedReceiptOrder}
+            onClose={() => {
+              setIsReceiptModalOpen(false);
+              setSelectedReceiptOrder(null);
+            }}
+          />
         )}
       </AnimatePresence>
 

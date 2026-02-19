@@ -73,7 +73,13 @@ export interface OrderItem {
 }
 
 export type PaymentStatus = "Unpaid" | "PartiallyPaid" | "Paid";
-export type PaymentMode = "Cash" | "Card" | "UPI" | "Online" | "Other";
+export type PaymentMode =
+  | "Cash"
+  | "Card"
+  | "UPI"
+  | "Online"
+  | "Razorpay"
+  | "Other";
 
 export interface PaymentRecord {
   id: string;

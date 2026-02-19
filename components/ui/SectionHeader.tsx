@@ -7,8 +7,8 @@ interface SectionHeaderProps {
   title: string;
   subtitle?: string;
   rightContent?: React.ReactNode;
-  searchContent?: React.ReactNode; // always visible
-  bottomContent?: React.ReactNode; // collapsible
+  searchContent?: React.ReactNode;
+  bottomContent?: React.ReactNode;
   sticky?: boolean;
   maxWidth?: string;
   disabled?: boolean;

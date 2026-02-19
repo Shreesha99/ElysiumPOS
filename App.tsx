@@ -1122,8 +1122,6 @@ const App: React.FC = () => {
               setSelectedTableId(null);
               setActiveOrderId(null);
             }
-
-            setPaymentOrderId(null);
           }}
         />
       )}
