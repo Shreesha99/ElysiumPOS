@@ -20,6 +20,8 @@ import {
   Building,
   ChevronRight,
   ChevronDown,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import { Table, Floor, Order } from "@/types";
 import SectionHeader from "@/components/ui/SectionHeader";
@@ -114,6 +116,33 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
 }) => {
   const [tableSearch, setTableSearch] = useState("");
   const currentFloor = activeFloors.find((f) => f.id === activeFloorId);
+  const getFloorPrefix = (floor?: Floor) => {
+    if (!floor) return "T";
+
+    const name = floor.name?.trim() || "";
+    const match = name.match(/\d+/);
+    if (match) {
+      return `F${match[0]}`;
+    }
+
+    const words = name.split(" ").filter(Boolean);
+    if (words.length === 1) {
+      return words[0].substring(0, 2).toUpperCase();
+    }
+
+    return words
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase();
+  };
+  const floorPrefix = getFloorPrefix(currentFloor);
+  const [mapZoom, setMapZoom] = useState(1);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(
+    null
+  );
+  const [mapOffset, setMapOffset] = useState({ x: 0, y: 0 });
+
   const selectedTable = activeTables.find((t) => t.id === selectedTableId);
   const activeTableOrder = selectedTable
     ? orders.find(
@@ -131,6 +160,11 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [showEditWarning, setShowEditWarning] = useState(false);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
+  const [editSelectedTableId, setEditSelectedTableId] = useState<string | null>(
+    null
+  );
+  const [renamingTableId, setRenamingTableId] = useState<string | null>(null);
+  const [isLiveModalOpen, setIsLiveModalOpen] = useState(false);
 
   const deleteTargetTable = activeTables.find((t) => t.id === deleteTargetId);
 
@@ -151,7 +185,10 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
   }, [showEditWarning]);
 
   const renderTableNode = (table: Table) => {
-    const isSelected = selectedTableId === table.id;
+    const isSelected = isEditMode
+      ? editSelectedTableId === table.id
+      : selectedTableId === table.id;
+
     const legs = [
       { x: 10, y: 10 },
       { x: 90, y: 10 },
@@ -164,10 +201,19 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
     return (
       <div
         key={table.id}
-        className="table-node"
+        className="table-node group"
         onClick={(e) => {
           e.stopPropagation();
-          setSelectedTableId(table.id);
+
+          if (isEditMode) {
+            setEditSelectedTableId(table.id);
+          } else {
+            if (table.floorId !== activeFloorId) {
+              setActiveFloorId(table.floorId);
+            }
+            setSelectedTableId(table.id);
+            setIsLiveModalOpen(true);
+          }
         }}
         style={{
           position: "absolute",
@@ -192,9 +238,45 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
             transform: `translateZ(40px) rotate(${table.rotation || 0}deg)`,
           }}
         >
-          <span className="text-xl font-black uppercase tracking-tighter">
-            T{table.number}
-          </span>
+          <div className="relative flex items-center gap-1 group">
+            {renamingTableId === table.id ? (
+              <input
+                autoFocus
+                type="number"
+                value={table.number}
+                onChange={(e) =>
+                  updateDraftTable(table.id, {
+                    number: parseInt(e.target.value) || 0,
+                  })
+                }
+                onBlur={() => setRenamingTableId(null)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") setRenamingTableId(null);
+                }}
+                className="w-16 text-center bg-white dark:bg-zinc-900 text-black dark:text-white rounded-lg px-2 py-1 text-lg font-black outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            ) : (
+              <>
+                <span className="text-xl font-black uppercase tracking-tighter">
+                  {floorPrefix}
+                  {table.number}
+                </span>
+
+                {isEditMode && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setRenamingTableId(table.id);
+                    }}
+                    className="absolute right-2 opacity-0 group-hover:opacity-100 transition text-xs bg-black/30 text-white rounded px-1"
+                  >
+                    ⋮
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+
           <div className="flex items-center gap-1 opacity-60 text-[10px] font-black uppercase mt-1">
             <Users size={10} /> {table.capacity}
           </div>
@@ -323,6 +405,7 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
   const resetCamera = () => {
     setMapRotation((prev) => 0);
     setMapPitch((prev) => 10);
+    setMapZoom((prev) => 1.0);
   };
 
   return (
@@ -548,6 +631,21 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
               >
                 ▼
               </button>
+              {/* Zoom In */}
+              <button
+                onClick={() => setMapZoom((z) => Math.min(z + 0.1, 2))}
+                className="p-3 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-xl text-zinc-400 hover:text-indigo-600"
+              >
+                <ZoomIn size={20} />
+              </button>
+
+              {/* Zoom Out */}
+              <button
+                onClick={() => setMapZoom((z) => Math.max(z - 0.1, 0.5))}
+                className="p-3 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-xl text-zinc-400 hover:text-indigo-600"
+              >
+                <ZoomOut size={20} />
+              </button>
             </div>
             <div className="absolute top-8 right-8 z-30 flex flex-col items-end gap-3">
               <button
@@ -570,6 +668,13 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                   <span>Pitch</span>
                   <span className="font-semibold text-indigo-600">
                     {mapPitch}°
+                  </span>
+                </div>
+
+                <div className="flex justify-between gap-6">
+                  <span>Zoom</span>
+                  <span className="font-semibold text-indigo-600">
+                    {mapZoom.toFixed(2)}x
                   </span>
                 </div>
 
@@ -621,7 +726,70 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
 
             <motion.div
               className="relative w-full h-full flex items-center justify-center"
-              animate={{ rotateX: mapPitch, rotateZ: mapRotation }}
+              onWheel={(e) => {
+                e.preventDefault();
+
+                const delta = e.deltaY > 0 ? -0.08 : 0.08;
+
+                setMapZoom((z) => {
+                  const next = z + delta;
+                  return Math.min(2, Math.max(0.5, next));
+                });
+              }}
+              animate={{
+                rotateX: mapPitch,
+                rotateZ: mapRotation,
+                scale: mapZoom,
+                x: mapOffset.x,
+                y: mapOffset.y,
+              }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                setIsDragging(true);
+                setDragStart({ x: e.clientX, y: e.clientY });
+              }}
+              onMouseUp={() => {
+                setIsDragging(false);
+                setDragStart(null);
+              }}
+              onMouseLeave={() => {
+                setIsDragging(false);
+                setDragStart(null);
+              }}
+              onMouseMove={(e) => {
+                if (!isDragging || !dragStart) return;
+
+                const dx = e.clientX - dragStart.x;
+                const dy = e.clientY - dragStart.y;
+
+                const ROTATION_SENSITIVITY = 0.15;
+                const PITCH_SENSITIVITY = 0.15;
+                const PAN_SENSITIVITY = 0.6;
+
+                // Shift = PAN
+                if (e.shiftKey) {
+                  setMapOffset((prev) => ({
+                    x: prev.x + dx * PAN_SENSITIVITY,
+                    y: prev.y + dy * PAN_SENSITIVITY,
+                  }));
+                }
+
+                // Right click drag = PITCH
+                else if (e.buttons === 2) {
+                  setMapPitch((prev) => {
+                    const next = prev - dy * PITCH_SENSITIVITY;
+                    return Math.min(80, Math.max(10, next));
+                  });
+                }
+
+                // Default drag = ROTATE
+                else {
+                  setMapRotation((prev) => prev + dx * ROTATION_SENSITIVITY);
+                }
+
+                setDragStart({ x: e.clientX, y: e.clientY });
+              }}
+              onContextMenu={(e) => e.preventDefault()}
               transition={{ type: "spring", damping: 30, stiffness: 50 }}
               style={{ perspective: "4000px", transformStyle: "preserve-3d" }}
             >
@@ -807,7 +975,12 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                       key={table.id}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => setSelectedTableId(table.id)}
+                      onClick={() => {
+                        setSelectedTableId(table.id);
+                        if (!isEditMode) {
+                          setIsLiveModalOpen(true);
+                        }
+                      }}
                       className={`relative aspect-square p-6 rounded-3xl border transition-all flex flex-col items-center justify-center gap-3 relative shadow-lg hover:shadow-xl
  ${
    selectedTableId === table.id
@@ -830,7 +1003,8 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                         </div>
                       )}
                       <span className="text-2xl sm:text-4xl font-black uppercase tracking-tighter">
-                        T{table.number}
+                        {floorPrefix}
+                        {table.number}
                       </span>
                       <div className="flex items-center gap-1.5 text-[8px] sm:text-[10px] font-black uppercase opacity-60">
                         <Users size={12} /> {table.capacity}
@@ -875,14 +1049,18 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
 
       {/* Table Detail Drawer / Panel */}
       <AnimatePresence>
-        {selectedTable && (
+        {selectedTable && !isEditMode && isLiveModalOpen && (
           <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
             {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setSelectedTableId(null)}
+              onClick={() => {
+                if (!isEditMode) {
+                  setIsLiveModalOpen(false);
+                }
+              }}
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
 
@@ -920,14 +1098,19 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                       </div>
                     ) : (
                       <h3 className="text-xl sm:text-2xl font-semibold tracking-tight truncate">
-                        Table T{selectedTable.number}
+                        Table {floorPrefix}
+                        {selectedTable.number}
                       </h3>
                     )}
                   </div>
                 </div>
 
                 <button
-                  onClick={() => setSelectedTableId(null)}
+                  onClick={() => {
+                    if (!isEditMode) {
+                      setIsLiveModalOpen(false);
+                    }
+                  }}
                   className="p-3 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-2xl text-zinc-400"
                 >
                   <X size={22} />
@@ -997,7 +1180,8 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                             Active Session
                           </p>
                           <h4 className="text-lg font-semibold dark:text-white">
-                            Table T{selectedTable.number}
+                            Table {floorPrefix}
+                            {selectedTable.number}
                           </h4>
                         </div>
 
@@ -1101,6 +1285,58 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                 >
                   Void Order
                 </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {selectedTable && isEditMode && (
+          <motion.div
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="fixed bottom-6 inset-x-0 flex justify-center z-[85]"
+          >
+            <div className="w-full max-w-xl mx-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl px-6 py-4 flex items-center justify-between">
+              {/* Capacity */}
+              <div className="flex items-center gap-4">
+                <span className="text-xs font-bold uppercase text-zinc-400">
+                  Capacity
+                </span>
+
+                <button
+                  onClick={() =>
+                    updateDraftTable(selectedTable.id, {
+                      capacity: Math.max(1, selectedTable.capacity - 1),
+                    })
+                  }
+                  className="w-8 h-8 rounded-lg border"
+                >
+                  -
+                </button>
+
+                <span className="text-xl font-black">
+                  {selectedTable.capacity}
+                </span>
+
+                <button
+                  onClick={() =>
+                    updateDraftTable(selectedTable.id, {
+                      capacity: selectedTable.capacity + 1,
+                    })
+                  }
+                  className="w-8 h-8 rounded-lg border"
+                >
+                  +
+                </button>
+              </div>
+
+              {/* Spatial Info */}
+              <div className="text-xs font-mono text-zinc-500">
+                {selectedTable.width} × {selectedTable.height} units
               </div>
             </div>
           </motion.div>

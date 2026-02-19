@@ -73,19 +73,25 @@ export interface OrderItem {
 }
 
 export type PaymentStatus = "Unpaid" | "PartiallyPaid" | "Paid";
+export type PaymentMode = "Cash" | "Card" | "UPI" | "Online" | "Other";
+
+export interface PaymentRecord {
+  id: string;
+  amount: number;
+  mode: PaymentMode;
+  referenceId?: string;
+  createdAt: Timestamp;
+  collectedBy?: string;
+}
 
 export interface Order {
   id: string;
   tableId: string | null;
   floorId: string | null;
-
   status: "Pending" | "Preparing" | "Served" | "Voided";
-
-  orderType: "Dining" | "Takeaway";
-
   paymentStatus: PaymentStatus;
-  payments?: Payment[];
-
+  payments: PaymentRecord[];
+  orderType: "Dining" | "Takeaway";
   items: OrderItem[];
   total: number;
   waiterId?: string;
@@ -105,21 +111,4 @@ export interface BusinessInsight {
   description: string;
   category: "Revenue" | "Operations" | "Menu" | "Customer";
   impact: "High" | "Medium" | "Low";
-}
-
-export type PaymentMethod = "Cash" | "Card" | "UPI" | "Wallet" | "TestGateway";
-
-export interface Payment {
-  id: string;
-  orderId: string;
-
-  amount: number;
-  method: PaymentMethod;
-
-  provider?: "Stripe" | "Razorpay" | "Mock";
-  providerRef?: string;
-
-  status: "Initiated" | "Authorized" | "Captured" | "Failed" | "Refunded";
-
-  paidAt?: Timestamp;
 }

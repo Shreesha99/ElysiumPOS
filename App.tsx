@@ -12,7 +12,6 @@ import {
   Floor,
   CartItem,
   OrderType,
-  Payment,
 } from "./types";
 import { CATEGORIES } from "./constants";
 import { geminiService } from "./services/geminiService";
@@ -32,7 +31,7 @@ import InventoryView from "./components/InventoryView/InventoryView";
 import InsightsView from "./components/InsightsView";
 import SupportView from "./components/SupportView";
 import KitchenView from "./components/KitchenView/KitchenView";
-import { Timestamp } from "firebase/firestore";
+import PaymentModal from "./components/ui/PaymentModal";
 
 const App: React.FC = () => {
   const [user, setUser] = useState<AppUser | null>(null);
@@ -62,6 +61,8 @@ const App: React.FC = () => {
   const [draftFloors, setDraftFloors] = useState<Floor[]>([]);
   const [editingFloorId, setEditingFloorId] = useState<string | null>(null);
   const [isSavingLayout, setIsSavingLayout] = useState(false);
+
+  const [paymentOrderId, setPaymentOrderId] = useState<string | null>(null);
 
   // ======================
   // Spatial Editor History
@@ -620,20 +621,10 @@ const App: React.FC = () => {
     try {
       setIsProcessingTableAction(true);
 
-      const payment: Payment = {
-        id: crypto.randomUUID(),
-        orderId: orderToPay.id,
+      await orderService.addPayment(orderToPay.id, {
         amount: orderToPay.total,
-        method: "Cash",
-        provider: "Mock",
-        status: "Captured",
-        paidAt: Timestamp.now(),
-      };
-
-      await orderService.update(orderToPay.id, {
-        payments: [...(orderToPay.payments ?? []), payment],
-        paymentStatus: "Paid",
-        paidAt: Timestamp.now(),
+        mode: "Cash",
+        collectedBy: user?.id,
       });
 
       await tableService.update(tableId, {
@@ -943,7 +934,18 @@ const App: React.FC = () => {
             mapPitch={mapPitch}
             setMapPitch={setMapPitch}
             orders={orders}
-            clearTableBill={clearTableBill}
+            clearTableBill={(tableId) => {
+              const order = orders.find(
+                (o) =>
+                  o.tableId === tableId &&
+                  o.status !== "Voided" &&
+                  o.paymentStatus !== "Paid"
+              );
+
+              if (!order) return;
+
+              setPaymentOrderId(order.id);
+            }}
             voidTableOrder={voidTableOrder}
             setActiveTab={setActiveTab}
             onUndo={handleUndo}
@@ -1093,6 +1095,38 @@ const App: React.FC = () => {
       <main className="flex-1 lg:ml-72 transition-all relative min-w-0 h-screen overflow-hidden">
         {renderContent()}
       </main>
+      {paymentOrderId && (
+        <PaymentModal
+          order={orders.find((o) => o.id === paymentOrderId)!}
+          onClose={() => setPaymentOrderId(null)}
+          onAddPayment={async (amount, mode) => {
+            const order = orders.find((o) => o.id === paymentOrderId);
+            if (!order) return;
+
+            await orderService.addPayment(order.id, {
+              amount,
+              mode,
+              collectedBy: user?.id,
+            });
+
+            // If this payment completes the order
+            const totalPaid =
+              order.payments.reduce((s, p) => s + p.amount, 0) + amount;
+
+            if (totalPaid >= order.total && order.tableId) {
+              await tableService.update(order.tableId, {
+                status: "Available",
+                currentOrderId: null,
+              });
+
+              setSelectedTableId(null);
+              setActiveOrderId(null);
+            }
+
+            setPaymentOrderId(null);
+          }}
+        />
+      )}
     </div>
   );
 };

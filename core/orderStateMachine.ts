@@ -3,8 +3,7 @@ import { Order } from "@/types";
 export const allowedTransitions: Record<Order["status"], Order["status"][]> = {
   Pending: ["Preparing", "Voided"],
   Preparing: ["Served", "Voided"],
-  Served: ["Paid"],
-  Paid: [],
+  Served: ["Voided"],
   Voided: [],
 };
 

@@ -15,7 +15,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { getRestaurantId } from "./restaurantContext";
-import { Order } from "@/types";
+import { Order, PaymentRecord, PaymentStatus } from "@/types";
 import { canTransition } from "@/core/orderStateMachine";
 
 export const orderService = {
@@ -78,10 +78,6 @@ export const orderService = {
 
       if (updates.status === "Served") {
         timingUpdates.servedAt = serverTimestamp() as any;
-      }
-
-      if (updates.status === "Paid") {
-        timingUpdates.paidAt = serverTimestamp() as any;
       }
     }
 
@@ -197,6 +193,51 @@ export const orderService = {
     });
 
     return orderRef;
+  },
+
+  async addPayment(
+    orderId: string,
+    payment: Omit<PaymentRecord, "id" | "createdAt">
+  ) {
+    const restaurantId = await getRestaurantId();
+    const orderRef = doc(db, "restaurants", restaurantId, "orders", orderId);
+
+    await runTransaction(db, async (transaction) => {
+      const snapshot = await transaction.get(orderRef);
+
+      if (!snapshot.exists()) throw new Error("ORDER_NOT_FOUND");
+
+      const order = snapshot.data() as Order;
+
+      if (order.status === "Voided") throw new Error("CANNOT_PAY_VOIDED_ORDER");
+
+      const newPayment: PaymentRecord = {
+        ...payment,
+        id: crypto.randomUUID(),
+        createdAt: Timestamp.now(),
+      };
+
+      const updatedPayments = [...(order.payments || []), newPayment];
+
+      const totalPaid = updatedPayments.reduce((sum, p) => sum + p.amount, 0);
+
+      let newPaymentStatus: PaymentStatus = "Unpaid";
+
+      if (totalPaid >= order.total) {
+        newPaymentStatus = "Paid";
+      } else if (totalPaid > 0) {
+        newPaymentStatus = "PartiallyPaid";
+      }
+
+      transaction.update(orderRef, {
+        payments: updatedPayments,
+        paymentStatus: newPaymentStatus,
+        ...(newPaymentStatus === "Paid" && {
+          paidAt: serverTimestamp(),
+        }),
+        updatedAt: serverTimestamp(),
+      });
+    });
   },
 
   async void(orderId: string, userId: string) {
