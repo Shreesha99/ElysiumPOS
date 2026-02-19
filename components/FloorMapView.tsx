@@ -119,9 +119,8 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
     ? orders.find(
         (o) =>
           o.tableId === selectedTable.id &&
-          (o.status === "Pending" ||
-            o.status === "Preparing" ||
-            o.status === "Served")
+          o.paymentStatus !== "Paid" &&
+          o.status !== "Voided"
       )
     : null;
 
@@ -801,13 +800,8 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
 
               <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6 lg:gap-8">
                 {filteredTables.map((table) => {
-                  const order = orders.find(
-                    (o) =>
-                      o.tableId === table.id &&
-                      (o.status === "Pending" ||
-                        o.status === "Preparing" ||
-                        o.status === "Served")
-                  );
+                  const order = orders.find((o) => o.tableId === table.id);
+
                   return (
                     <motion.button
                       key={table.id}
@@ -841,11 +835,13 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                       <div className="flex items-center gap-1.5 text-[8px] sm:text-[10px] font-black uppercase opacity-60">
                         <Users size={12} /> {table.capacity}
                       </div>
-                      {order && (
-                        <div className="absolute -bottom-2 px-3 py-1 bg-indigo-600 text-white rounded-full text-[8px] font-black shadow-lg">
-                          ₹{order.total.toLocaleString()}
-                        </div>
-                      )}
+                      {order &&
+                        order.paymentStatus !== "Paid" &&
+                        order.status !== "Voided" && (
+                          <div className="absolute -bottom-2 px-3 py-1 bg-indigo-600 text-white rounded-full text-[8px] font-black shadow-lg">
+                            ₹{order.total.toLocaleString()}
+                          </div>
+                        )}
                     </motion.button>
                   );
                 })}
@@ -880,28 +876,31 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
       {/* Table Detail Drawer / Panel */}
       <AnimatePresence>
         {selectedTable && (
-          <>
-            {/* Mobile Backdrop */}
+          <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedTableId(null)}
-              className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-md z-[60]"
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
 
+            {/* Centered Modal */}
             <motion.div
-              initial={isMobile ? { y: "100%" } : { x: 100, opacity: 0 }}
-              animate={isMobile ? { y: 0 } : { x: 0, opacity: 1 }}
-              exit={isMobile ? { y: "100%" } : { x: 100, opacity: 0 }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className={`fixed bottom-6 left-1/2 -translate-x-1/2 w-[95%] max-w-2xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-2xl z-[70] flex flex-col gap-6 max-h-[70vh] overflow-hidden`}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="relative w-full max-w-2xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-2xl flex flex-col gap-6 max-h-[85vh] overflow-hidden"
             >
+              {/* HEADER */}
               <div className="flex items-center justify-between shrink-0">
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-medium text-zinc-500 mb-1">
                     {isEditMode ? "Floor Config" : "Live Status"}
                   </p>
+
                   <div className="flex items-center gap-3">
                     {isEditMode ? (
                       <div className="flex items-center gap-2">
@@ -926,23 +925,26 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                     )}
                   </div>
                 </div>
+
                 <button
                   onClick={() => setSelectedTableId(null)}
-                  className="p-2 sm:p-3 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-2xl text-zinc-400"
+                  className="p-3 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-2xl text-zinc-400"
                 >
-                  <X size={24} />
+                  <X size={22} />
                 </button>
               </div>
 
+              {/* BODY */}
               <div className="flex-1 overflow-y-auto no-scrollbar space-y-8">
                 {isEditMode ? (
                   <div className="space-y-6">
-                    <div className="p-6 sm:p-8 bg-zinc-50 dark:bg-zinc-900 rounded-[2rem] border border-zinc-100 dark:border-zinc-800 flex flex-col items-center gap-4 text-center">
+                    <div className="p-6 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 flex flex-col items-center gap-4 text-center">
                       <Users size={32} className="text-indigo-500" />
                       <div className="space-y-1">
                         <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">
                           Table Capacity
                         </p>
+
                         <div className="flex items-center gap-4">
                           <button
                             onClick={() =>
@@ -957,9 +959,11 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                           >
                             -
                           </button>
+
                           <span className="text-3xl font-black dark:text-white">
                             {selectedTable.capacity}
                           </span>
+
                           <button
                             onClick={() =>
                               updateDraftTable(selectedTable.id, {
@@ -973,6 +977,7 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                         </div>
                       </div>
                     </div>
+
                     <div className="space-y-3">
                       <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">
                         Spatial Logic
@@ -985,7 +990,6 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                   </div>
                 ) : (
                   <div className="space-y-8">
-                    {/* SESSION SUMMARY CARD */}
                     <div className="p-5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900">
                       <div className="flex items-center justify-between mb-6">
                         <div>
@@ -997,7 +1001,7 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                           </h4>
                         </div>
 
-                        {selectedTable.status === "Occupied" && (
+                        {activeTableOrder && (
                           <span className="flex items-center gap-2 text-emerald-600 text-sm font-medium">
                             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                             Live
@@ -1016,7 +1020,7 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                             </p>
                           </div>
 
-                          <div className="space-y-3 max-h-[200px] overflow-y-auto pr-2">
+                          <div className="space-y-3 max-h-[250px] overflow-y-auto pr-2">
                             {activeTableOrder.items.map((i) => (
                               <div
                                 key={`${i.menuItemId}-${i.name}`}
@@ -1041,72 +1045,68 @@ const FloorMapView: React.FC<FloorMapViewProps> = ({
                         </div>
                       )}
                     </div>
-
-                    {/* ACTIONS */}
-                    <div className="space-y-4 pt-2">
-                      {selectedTable.status === "Occupied" &&
-                      activeTableOrder ? (
-                        <>
-                          <button
-                            onClick={() => clearTableBill(selectedTable.id)}
-                            disabled={activeTableOrder.status !== "Served"}
-                            className={`w-full py-3 rounded-xl font-medium transition ${
-                              activeTableOrder.status === "Served"
-                                ? "bg-indigo-600 hover:bg-indigo-700 text-white"
-                                : "bg-zinc-300 text-zinc-500 cursor-not-allowed"
-                            }`}
-                          >
-                            {activeTableOrder.status === "Served"
-                              ? "Settle Bill"
-                              : "Waiting for Kitchen"}
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              const activeOrder = orders.find(
-                                (o) =>
-                                  o.tableId === selectedTable.id &&
-                                  (o.status === "Pending" ||
-                                    o.status === "Preparing" ||
-                                    o.status === "Served")
-                              );
-
-                              if (!activeOrder) return;
-
-                              setActiveOrderId(activeOrder.id);
-                              setActiveTab("pos");
-                            }}
-                            className="w-full py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-white font-medium hover:bg-zinc-100 dark:hover:bg-zinc-900 transition"
-                          >
-                            Add Items
-                          </button>
-
-                          <button
-                            onClick={() => voidTableOrder(selectedTable.id)}
-                            className="w-full py-3 rounded-xl border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition font-medium"
-                          >
-                            Void Order
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            setActiveTab("pos");
-                            setSelectedTableId(selectedTable.id);
-                          }}
-                          className="w-full py-4 rounded-2xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-semibold hover:bg-indigo-600 dark:hover:bg-indigo-100 transition shadow-md hover:shadow-lg"
-                        >
-                          Start Order
-                        </button>
-                      )}
-                    </div>
                   </div>
                 )}
               </div>
             </motion.div>
-          </>
+          </div>
         )}
       </AnimatePresence>
+
+      <AnimatePresence>
+        {selectedTable && !isEditMode && activeTableOrder && (
+          <motion.div
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="fixed bottom-6 inset-x-0 flex justify-center z-[85]"
+          >
+            <div className="w-full max-w-xl mx-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl px-4 py-3">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <button
+                  disabled={
+                    activeTableOrder.orderType === "Dining" &&
+                    activeTableOrder.status !== "Served"
+                  }
+                  onClick={() => clearTableBill(selectedTable.id)}
+                  className={`flex-1 min-w-[120px] py-2 rounded-xl text-sm font-medium transition text-white
+              ${
+                activeTableOrder.orderType === "Dining" &&
+                activeTableOrder.status !== "Served"
+                  ? "bg-zinc-400 cursor-not-allowed"
+                  : "bg-indigo-600 hover:bg-indigo-700"
+              }
+            `}
+                >
+                  {activeTableOrder.orderType === "Dining" &&
+                  activeTableOrder.status !== "Served"
+                    ? "Waiting for Kitchen"
+                    : "Collect Payment"}
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveOrderId(activeTableOrder.id);
+                    setActiveTab("pos");
+                  }}
+                  className="flex-1 min-w-[120px] py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 text-sm font-medium hover:bg-zinc-100 dark:hover:bg-zinc-900 transition"
+                >
+                  Add Items
+                </button>
+
+                <button
+                  onClick={() => voidTableOrder(selectedTable.id)}
+                  className="flex-1 min-w-[120px] py-2 rounded-xl border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition text-sm font-medium"
+                >
+                  Void Order
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {deleteTargetId && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

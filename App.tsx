@@ -12,6 +12,7 @@ import {
   Floor,
   CartItem,
   OrderType,
+  Payment,
 } from "./types";
 import { CATEGORIES } from "./constants";
 import { geminiService } from "./services/geminiService";
@@ -31,6 +32,7 @@ import InventoryView from "./components/InventoryView/InventoryView";
 import InsightsView from "./components/InsightsView";
 import SupportView from "./components/SupportView";
 import KitchenView from "./components/KitchenView/KitchenView";
+import { Timestamp } from "firebase/firestore";
 
 const App: React.FC = () => {
   const [user, setUser] = useState<AppUser | null>(null);
@@ -143,7 +145,7 @@ const App: React.FC = () => {
 
     const order = orders.find((o) => o.id === activeOrderId);
     if (!order) return;
-    if (order.status === "Paid" || order.status === "Voided") {
+    if (order.paymentStatus === "Paid" || order.status === "Voided") {
       setActiveOrderId(null);
       setCart([]);
       return;
@@ -173,18 +175,25 @@ const App: React.FC = () => {
   }, [activeOrderId, orders, menuItems]);
 
   useEffect(() => {
-    if (!selectedTableId) return;
+    if (!selectedTableId) {
+      setActiveOrderId(null);
+      return;
+    }
 
-    const table = tables.find((t) => t.id === selectedTableId);
-    if (!table) return;
+    const activeOrder = orders.find(
+      (o) =>
+        o.tableId === selectedTableId &&
+        o.paymentStatus !== "Paid" &&
+        o.status !== "Voided"
+    );
 
-    if (table.currentOrderId) {
-      setActiveOrderId(table.currentOrderId);
+    if (activeOrder) {
+      setActiveOrderId(activeOrder.id);
     } else {
       setActiveOrderId(null);
       setCart([]);
     }
-  }, [selectedTableId, tables]);
+  }, [selectedTableId, orders]);
 
   useEffect(() => {
     if (!user) return;
@@ -254,9 +263,10 @@ const App: React.FC = () => {
   const stats = useMemo(() => {
     const settledOrders = orders.filter(
       (o) =>
-        o.status === "Paid" &&
+        o.paymentStatus === "Paid" &&
         (o.orderType === "Dining" || o.orderType === "Takeaway")
     );
+
     const totalRevenue = settledOrders.reduce((acc, o) => acc + o.total, 0);
 
     const pendingOrdersCount = orders.filter(
@@ -272,7 +282,8 @@ const App: React.FC = () => {
     const hourlyMap: Record<string, number> = {};
 
     orders
-      .filter((o) => o.status === "Paid")
+      .filter((o) => o.paymentStatus === "Paid")
+
       .forEach((order) => {
         const hour =
           order.createdAt.toDate().getHours().toString().padStart(2, "0") +
@@ -519,7 +530,8 @@ const App: React.FC = () => {
         tableId: orderType === "Dining" ? selectedTableId : null,
         floorId: selectedTable ? selectedTable.floorId : null,
         status: "Pending",
-        paymentStatus: orderType === "Takeaway" ? "Paid" : "Unpaid",
+        paymentStatus: "Unpaid",
+        payments: [],
         orderType,
         items: orderItems,
         total,
@@ -592,17 +604,36 @@ const App: React.FC = () => {
 
   const clearTableBill = async (tableId: string) => {
     const orderToPay = orders.find(
-      (o) => o.tableId === tableId && o.status === "Served"
+      (o) =>
+        o.tableId === tableId &&
+        o.status !== "Voided" &&
+        o.paymentStatus !== "Paid"
     );
 
     if (!orderToPay) return;
 
+    if (orderToPay.orderType === "Dining" && orderToPay.status !== "Served") {
+      toast("Kitchen has not completed this order", "error");
+      return;
+    }
+
     try {
       setIsProcessingTableAction(true);
 
+      const payment: Payment = {
+        id: crypto.randomUUID(),
+        orderId: orderToPay.id,
+        amount: orderToPay.total,
+        method: "Cash",
+        provider: "Mock",
+        status: "Captured",
+        paidAt: Timestamp.now(),
+      };
+
       await orderService.update(orderToPay.id, {
-        status: "Paid",
+        payments: [...(orderToPay.payments ?? []), payment],
         paymentStatus: "Paid",
+        paidAt: Timestamp.now(),
       });
 
       await tableService.update(tableId, {
@@ -615,9 +646,8 @@ const App: React.FC = () => {
       setCart([]);
 
       toast("Bill settled successfully", "success");
-    } catch (err: any) {
+    } catch (err) {
       toast("Failed to settle bill", "error");
-      console.error(err?.message);
     } finally {
       setIsProcessingTableAction(false);
     }

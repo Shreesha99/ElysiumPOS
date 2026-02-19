@@ -72,13 +72,20 @@ export interface OrderItem {
   completedAt?: Timestamp;
 }
 
+export type PaymentStatus = "Unpaid" | "PartiallyPaid" | "Paid";
+
 export interface Order {
   id: string;
   tableId: string | null;
   floorId: string | null;
-  status: "Pending" | "Preparing" | "Served" | "Paid" | "Voided";
+
+  status: "Pending" | "Preparing" | "Served" | "Voided";
+
   orderType: "Dining" | "Takeaway";
-  paymentStatus: "Unpaid" | "Paid";
+
+  paymentStatus: PaymentStatus;
+  payments?: Payment[];
+
   items: OrderItem[];
   total: number;
   waiterId?: string;
@@ -98,4 +105,21 @@ export interface BusinessInsight {
   description: string;
   category: "Revenue" | "Operations" | "Menu" | "Customer";
   impact: "High" | "Medium" | "Low";
+}
+
+export type PaymentMethod = "Cash" | "Card" | "UPI" | "Wallet" | "TestGateway";
+
+export interface Payment {
+  id: string;
+  orderId: string;
+
+  amount: number;
+  method: PaymentMethod;
+
+  provider?: "Stripe" | "Razorpay" | "Mock";
+  providerRef?: string;
+
+  status: "Initiated" | "Authorized" | "Captured" | "Failed" | "Refunded";
+
+  paidAt?: Timestamp;
 }
