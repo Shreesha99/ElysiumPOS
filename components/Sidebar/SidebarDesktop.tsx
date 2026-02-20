@@ -8,7 +8,7 @@ interface Props {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   darkMode: boolean;
-  toggleDarkMode: () => void;
+  toggleDarkMode: (value: boolean) => void;
   user: AppUser | null;
   onLogout: () => void;
   onSync: () => void;
@@ -113,20 +113,29 @@ const SidebarDesktop: React.FC<Props> = ({
           </span>
         </button>
 
-        <div className="flex w-full bg-zinc-100 dark:bg-zinc-900 rounded-xl p-1">
+        <div className="flex w-full bg-zinc-100 dark:bg-zinc-900 rounded-xl p-1 relative">
+          {/* Sliding Indicator */}
+          <div
+            className={`absolute top-1 bottom-1 w-1/2 rounded-lg bg-indigo-600 transition-all duration-300 ${
+              darkMode ? "translate-x-full" : "translate-x-0"
+            }`}
+          />
+
+          {/* Light */}
           <button
-            onClick={() => !darkMode && toggleDarkMode()}
-            className={`flex-1 h-9 rounded-lg ${
-              !darkMode ? "bg-indigo-600 text-white" : "text-zinc-400"
+            onClick={() => toggleDarkMode(false)}
+            className={`relative flex-1 flex items-center justify-center h-10 z-10 transition ${
+              !darkMode ? "text-white" : "text-zinc-500 dark:text-zinc-400"
             }`}
           >
             <Sun size={16} />
           </button>
 
+          {/* Dark */}
           <button
-            onClick={() => darkMode && toggleDarkMode()}
-            className={`flex-1 h-9 rounded-lg ${
-              darkMode ? "bg-indigo-600 text-white" : "text-zinc-400"
+            onClick={() => toggleDarkMode(true)}
+            className={`relative flex-1 flex items-center justify-center h-10 z-10 transition ${
+              darkMode ? "text-white" : "text-zinc-500 dark:text-zinc-400"
             }`}
           >
             <Moon size={16} />

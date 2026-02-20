@@ -8,7 +8,7 @@ interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   darkMode: boolean;
-  toggleDarkMode: () => void;
+  toggleDarkMode: (value: boolean) => void;
   user: AppUser | null;
   onLogout: () => void;
   onSync: () => void;

@@ -1085,7 +1085,7 @@ const App: React.FC = () => {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         darkMode={darkMode}
-        toggleDarkMode={() => setDarkMode(!darkMode)}
+        toggleDarkMode={(value: boolean) => setDarkMode(value)}
         user={user}
         onLogout={handleLogout}
         onSync={handleFullSync}
