@@ -51,7 +51,7 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
       <AuthLeftPanel />
 
       {/* Right Auth Form */}
-      <div className="flex-1 flex items-center justify-center p-8 md:p-20 relative z-10">
+      <div className="flex-1 flex items-center justify-center p-8 md:p-8 relative z-10">
         <AuthForm
           isRegister={isRegister}
           setIsRegister={setIsRegister}
