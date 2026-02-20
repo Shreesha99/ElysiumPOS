@@ -1,9 +1,9 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search } from "lucide-react";
-import MenuCard from "@/components/MenuCard";
+import MenuCard from "@/components/POSView/MenuCard";
 import { MenuItem } from "@/types";
-import EmptyState from "../ui/EmptyState";
+import EmptyState from "../Components/EmptyState";
 
 interface Props {
   items: MenuItem[];

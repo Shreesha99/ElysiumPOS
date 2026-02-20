@@ -24,10 +24,10 @@ import {
   ZoomOut,
 } from "lucide-react";
 import { Table, Floor, Order } from "@/types";
-import SectionHeader from "@/components/ui/SectionHeader";
-import GlobalProcessingOverlay from "@/components/ui/GlobalProcessingOverlay";
-import { toast } from "./ui/Toaster";
-import ReceiptModal from "./ui/ReceiptModal";
+import SectionHeader from "@/components/Components/SectionHeader";
+import GlobalProcessingOverlay from "@/components/Components/GlobalProcessingOverlay";
+import { toast } from "./Components/Toaster";
+import ReceiptModal from "./Components/ReceiptModal";
 
 const GRID_SIZE = 40;
 

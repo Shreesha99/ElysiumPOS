@@ -1,7 +1,7 @@
 import React from "react";
 import { Waiter } from "@/types";
 import StaffCard from "@/components/StaffView/StaffCard";
-import EmptyState from "../ui/EmptyState";
+import EmptyState from "../Components/EmptyState";
 import { Users } from "lucide-react";
 
 interface Props {

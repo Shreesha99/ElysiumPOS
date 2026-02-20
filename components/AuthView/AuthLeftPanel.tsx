@@ -1,5 +1,5 @@
 import React from "react";
-import BrandIcon from "@/components/ui/BrandIcon";
+import BrandIcon from "@/components/Components/BrandIcon";
 import { BarChart3, Activity, Sparkles } from "lucide-react";
 
 const AuthLeftPanel = () => {

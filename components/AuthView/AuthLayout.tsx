@@ -1,21 +1,17 @@
 import React, { useState } from "react";
 import { AppUser, authService } from "@/services/authService";
-import { toast } from "@/components/ui/Toaster";
-import AuthLeftPanel from "@/components/auth/AuthLeftPanel";
-import AuthForm from "@/components/auth/AuthForm";
+import { toast } from "@/components/Components/Toaster";
+import AuthLeftPanel from "./AuthLeftPanel";
+import AuthForm from "./AuthForm";
 
-interface AuthProps {
+interface Props {
   onAuthSuccess: (user: AppUser) => void;
 }
 
-const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
+const AuthLayout: React.FC<Props> = ({ onAuthSuccess }) => {
   const [isRegister, setIsRegister] = useState(false);
 
-  const handleSubmit = async (
-    name: string,
-    email: string,
-    password: string
-  ) => {
+  const handleAuth = async (name: string, email: string, password: string) => {
     try {
       let user: AppUser;
 
@@ -36,35 +32,32 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
       onAuthSuccess(user);
     } catch (err: any) {
       toast(mapFirebaseError(err), "error");
+      throw err;
     }
   };
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col md:flex-row bg-zinc-50 dark:bg-zinc-950 overflow-hidden">
-      {/* Controlled POS Gradient Background */}
+    <div className="relative min-h-screen flex bg-zinc-50 dark:bg-zinc-950 overflow-hidden">
+      {/* POS aligned gradient */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-40 -left-40 w-[550px] h-[550px] bg-indigo-600/20 blur-[150px] rounded-full" />
-        <div className="absolute bottom-[-160px] right-[-140px] w-[500px] h-[500px] bg-purple-600/20 blur-[150px] rounded-full" />
+        <div className="absolute -top-32 -left-32 w-[500px] h-[500px] bg-indigo-600/20 blur-[140px] rounded-full" />
+        <div className="absolute bottom-[-150px] right-[-120px] w-[450px] h-[450px] bg-purple-600/20 blur-[140px] rounded-full" />
       </div>
 
-      {/* Left Brand Panel */}
       <AuthLeftPanel />
 
-      {/* Right Auth Form */}
       <div className="flex-1 flex items-center justify-center p-8 md:p-8 relative z-10">
         <AuthForm
           isRegister={isRegister}
           setIsRegister={setIsRegister}
-          onSubmit={handleSubmit}
+          onSubmit={handleAuth}
         />
       </div>
     </div>
   );
 };
 
-export default Auth;
-
-/* ---------------- FIREBASE ERROR SANITIZER ---------------- */
+export default AuthLayout;
 
 function mapFirebaseError(err: any): string {
   switch (err?.code) {
@@ -81,6 +74,6 @@ function mapFirebaseError(err: any): string {
     case "auth/too-many-requests":
       return "Too many attempts. Try again later";
     default:
-      return "Authentication failed. Please try again.";
+      return "Authentication failed";
   }
 }

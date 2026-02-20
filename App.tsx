@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import Sidebar from "./components/Sidebar";
-import Auth from "./components/Auth";
-import { Toaster, toast } from "./components/ui/Toaster";
+import Sidebar from "./components/Sidebar/Sidebar";
+import Auth from "./components/AuthView/Auth";
+import { Toaster, toast } from "./components/Components/Toaster";
 import {
   MenuItem,
   Category,
@@ -23,15 +23,15 @@ import { menuService } from "./services/menuService";
 import { orderService } from "./services/orderService";
 
 // View Components
-import DashboardView from "./components/DashboardView";
+import DashboardView from "./components/DashboardView/DashboardView";
 import FloorMapView from "./components/FloorMapView";
 import POSView from "./components/POSView/POSView";
 import StaffView from "./components/StaffView/StaffView";
 import InventoryView from "./components/InventoryView/InventoryView";
-import InsightsView from "./components/InsightsView";
-import SupportView from "./components/SupportView";
+import InsightsView from "./components/InsightsView/InsightsView";
+import SupportView from "./components/SupportView/SupportView";
 import KitchenView from "./components/KitchenView/KitchenView";
-import PaymentModal from "./components/ui/PaymentModal";
+import PaymentModal from "./components/Components/PaymentModal";
 
 const App: React.FC = () => {
   const [user, setUser] = useState<AppUser | null>(null);

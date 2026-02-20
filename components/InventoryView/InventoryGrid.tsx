@@ -2,7 +2,7 @@ import React from "react";
 import { MenuItem } from "@/types";
 import InventoryCard from "@/components/InventoryView/InventoryCard";
 import { AnimatePresence } from "framer-motion";
-import EmptyState from "@/components/ui/EmptyState";
+import EmptyState from "@/components/Components/EmptyState";
 import { Search } from "lucide-react";
 
 interface Props {

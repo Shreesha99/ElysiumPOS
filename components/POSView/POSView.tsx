@@ -11,12 +11,12 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import SearchBar from "@/components/POSView/SearchBar";
 import MenuGridSection from "@/components/POSView/MenuGridSection";
-import CartPanel from "@/components/CartPanel";
+import CartPanel from "@/components/POSView/CartPanel";
 
 import { MenuItem, Category, CartItem, Table, OrderType } from "@/types";
 import MenuFiltersBar from "@/components/POSView/MenuFiltersBar";
-import SectionHeader from "@/components/ui/SectionHeader";
-import GlobalProcessingOverlay from "@/components/ui/GlobalProcessingOverlay";
+import SectionHeader from "@/components/Components/SectionHeader";
+import GlobalProcessingOverlay from "@/components/Components/GlobalProcessingOverlay";
 
 interface POSViewProps {
   selectedTable: Table | undefined;

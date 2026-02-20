@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import SectionHeader from "@/components/ui/SectionHeader";
+import SectionHeader from "@/components/Components/SectionHeader";
 import SearchBar from "@/components/POSView/SearchBar";
 import { ChefHat } from "lucide-react";
 import { useKitchenTickets } from "@/components/KitchenView/hooks/useKitchenTickets";

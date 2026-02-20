@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { MenuItem, Category } from "@/types";
 import { Package, Plus } from "lucide-react";
 
-import SectionHeader from "@/components/ui/SectionHeader";
+import SectionHeader from "@/components/Components/SectionHeader";
 import SearchBar from "@/components/POSView/SearchBar";
 import MenuFiltersBar from "@/components/POSView/MenuFiltersBar";
 import InventoryGrid from "@/components/InventoryView/InventoryGrid";

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { Waiter } from "@/types";
 import StaffGrid from "@/components/StaffView/StaffGrid";
 import AddStaffModal from "@/components/StaffView/AddStaffModal";
-import SectionHeader from "@/components/ui/SectionHeader";
+import SectionHeader from "@/components/Components/SectionHeader";
 import SearchBar from "@/components/POSView/SearchBar";
 import { Plus, Settings2, Users } from "lucide-react";
 
