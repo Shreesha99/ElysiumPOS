@@ -133,15 +133,6 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    const unsubscribe = authService.subscribe((u) => {
-      setUser(u);
-      setAuthLoading(false);
-    });
-
-    return unsubscribe;
-  }, []);
-
-  useEffect(() => {
     if (!activeOrderId) return;
 
     const order = orders.find((o) => o.id === activeOrderId);
@@ -199,34 +190,42 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!user) return;
 
-    const unsubStaff = staffService.subscribe(setWaiters);
+    console.log("User ready, skipping data services for now");
 
-    const unsubTables = tableService.subscribe((data) => {
-      if (!isEditMode && !isSavingLayout) {
-        setTables(data);
-      }
-    });
+    return () => {};
+  }, [user]);
 
-    const unsubFloors = floorService.subscribe((data) => {
-      if (!isEditMode && !isSavingLayout) {
-        setFloors(data);
-      }
-    });
+  // useEffect(() => {
+  //   if (!user) return;
 
-    const unsubMenu = menuService.subscribe(setMenuItems);
+  //   const unsubStaff = staffService.subscribe(setWaiters);
 
-    const unsubOrders = orderService.subscribe((data) => {
-      setOrders(data);
-    });
+  //   const unsubTables = tableService.subscribe((data) => {
+  //     if (!isEditMode && !isSavingLayout) {
+  //       setTables(data);
+  //     }
+  //   });
 
-    return () => {
-      unsubStaff();
-      unsubTables();
-      unsubFloors();
-      unsubMenu();
-      unsubOrders();
-    };
-  }, [user, isEditMode, isSubmittingOrder]);
+  //   const unsubFloors = floorService.subscribe((data) => {
+  //     if (!isEditMode && !isSavingLayout) {
+  //       setFloors(data);
+  //     }
+  //   });
+
+  //   const unsubMenu = menuService.subscribe(setMenuItems);
+
+  //   const unsubOrders = orderService.subscribe((data) => {
+  //     setOrders(data);
+  //   });
+
+  //   return () => {
+  //     unsubStaff();
+  //     unsubTables();
+  //     unsubFloors();
+  //     unsubMenu();
+  //     unsubOrders();
+  //   };
+  // }, [user, isEditMode, isSubmittingOrder]);
 
   useEffect(() => {
     localStorage.setItem("elysium_active_tab", activeTab);
@@ -330,6 +329,38 @@ const App: React.FC = () => {
     document.documentElement.classList.toggle("dark", darkMode);
     localStorage.setItem("elysium_theme", darkMode ? "dark" : "light");
   }, [darkMode]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setAuthLoading(false);
+    }, 2000); // fallback
+
+    return () => clearTimeout(timeout);
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const init = async () => {
+      const user = await authService.getCurrentUser();
+
+      if (mounted) {
+        setUser(user);
+        setAuthLoading(false);
+      }
+    };
+
+    init();
+
+    const unsubscribe = authService.subscribe((u) => {
+      setUser(u);
+    });
+
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, []);
 
   // Upselling suggestions
   useEffect(() => {
