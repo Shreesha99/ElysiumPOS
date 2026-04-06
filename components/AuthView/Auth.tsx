@@ -35,7 +35,7 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
 
       onAuthSuccess(user);
     } catch (err: any) {
-      toast(mapFirebaseError(err), "error");
+      toast(mapAuthError(err), "error");
     }
   };
 
@@ -66,21 +66,19 @@ export default Auth;
 
 /* ---------------- FIREBASE ERROR SANITIZER ---------------- */
 
-function mapFirebaseError(err: any): string {
-  switch (err?.code) {
-    case "auth/user-not-found":
-      return "No account found for this email";
-    case "auth/wrong-password":
-      return "Incorrect password";
-    case "auth/email-already-in-use":
-      return "Email already registered";
-    case "auth/invalid-email":
-      return "Invalid email format";
-    case "auth/weak-password":
-      return "Password must be at least 6 characters";
-    case "auth/too-many-requests":
-      return "Too many attempts. Try again later";
-    default:
-      return "Authentication failed. Please try again.";
-  }
+function mapAuthError(err: any): string {
+  const msg = err?.message?.toLowerCase() || "";
+
+  if (msg.includes("invalid login credentials"))
+    return "Invalid email or password";
+
+  if (msg.includes("email not confirmed"))
+    return "Please verify your email first";
+
+  if (msg.includes("already registered")) return "Email already registered";
+
+  if (msg.includes("too many requests"))
+    return "Too many attempts. Please wait or switch network";
+
+  return err?.message || "Authentication failed";
 }

@@ -1,14 +1,4 @@
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-  User as FirebaseUser,
-} from "firebase/auth";
-
-import { doc, getDoc, setDoc, collection, addDoc } from "firebase/firestore";
-
-import { auth, db } from "./firebase";
+import { supabase } from "./supabase";
 
 export interface AppUser {
   id: string;
@@ -19,97 +9,123 @@ export interface AppUser {
 }
 
 /* =========================
-   INTERNAL USER MAPPER
+   INTERNAL PROFILE FETCH
 ========================= */
-const mapUser = async (firebaseUser: FirebaseUser): Promise<AppUser> => {
-  const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+const getProfile = async (userId: string): Promise<AppUser> => {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .single();
 
-  if (!userDoc.exists()) {
-    await signOut(auth);
-    throw new Error("User profile not found");
+  if (error || !data) {
+    throw new Error("Profile not found");
   }
 
-  const data = userDoc.data();
-
-  if (!data.restaurantId) {
+  if (!data.restaurant_id) {
     throw new Error("Restaurant not assigned");
   }
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return {
-    id: firebaseUser.uid,
-    email: firebaseUser.email || "",
+    id: userId,
+    email: user?.email || "",
     name: data.name,
     role: data.role,
-    restaurantId: data.restaurantId,
+    restaurantId: data.restaurant_id,
   };
 };
 
+/* =========================
+   AUTH SERVICE
+========================= */
 export const authService = {
-  /* =========================
-     LOGIN
-  ========================== */
+  /* LOGIN */
   login: async (email: string, password: string): Promise<AppUser> => {
-    const cred = await signInWithEmailAndPassword(auth, email, password);
-    return await mapUser(cred.user);
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) throw error;
+
+    return await getProfile(data.user.id);
   },
 
-  /* =========================
-     REGISTER ADMIN ONLY
-  ========================== */
+  /* REGISTER (ADMIN) */
   register: async (
     name: string,
     email: string,
     password: string
   ): Promise<AppUser> => {
-    const cred = await createUserWithEmailAndPassword(auth, email, password);
-    const uid = cred.user.uid;
-
-    // Create user profile
-    await setDoc(doc(db, "users", uid), {
-      name,
+    const { data, error } = await supabase.auth.signUp({
       email,
-      role: "admin",
-      restaurantId: null,
-      createdAt: new Date(),
+      password,
     });
+
+    if (error || !data.user) throw error;
+
+    const userId = data.user.id;
 
     // Create restaurant
-    const restaurantRef = await addDoc(collection(db, "restaurants"), {
-      name: `${name}'s Restaurant`,
-      ownerId: uid,
-      createdAt: new Date(),
+    const { data: restaurant, error: restErr } = await supabase
+      .from("restaurants")
+      .insert({
+        name: `${name}'s Restaurant`,
+        owner_id: userId,
+      })
+      .select()
+      .single();
+
+    if (restErr) throw restErr;
+
+    // Create profile
+    const { error: profileErr } = await supabase.from("profiles").insert({
+      id: userId,
+      name,
+      role: "admin",
+      restaurant_id: restaurant.id,
     });
 
-    const restaurantId = restaurantRef.id;
-
-    await setDoc(doc(db, "users", uid), { restaurantId }, { merge: true });
+    if (profileErr) throw profileErr;
 
     return {
-      id: uid,
+      id: userId,
       email,
       name,
       role: "admin",
-      restaurantId,
+      restaurantId: restaurant.id,
     };
   },
 
   logout: async () => {
-    await signOut(auth);
+    await supabase.auth.signOut();
   },
 
   subscribe: (callback: (user: AppUser | null) => void) => {
-    return onAuthStateChanged(auth, async (firebaseUser) => {
-      if (!firebaseUser) {
-        callback(null);
-        return;
-      }
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      async (_, session) => {
+        if (!session?.user) {
+          callback(null);
+          return;
+        }
 
-      try {
-        const user = await mapUser(firebaseUser);
-        callback(user);
-      } catch {
-        callback(null);
+        try {
+          const user = await getProfile(session.user.id);
+          callback(user);
+        } catch (err) {
+          console.error("Auth sync error:", err);
+          callback(null);
+        }
       }
-    });
+    );
+
+    // ✅ RETURN CLEANUP FUNCTION
+    return () => {
+      listener.subscription.unsubscribe();
+    };
   },
 };
